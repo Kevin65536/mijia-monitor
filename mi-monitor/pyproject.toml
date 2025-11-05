@@ -1,0 +1,61 @@
+[project]
+name = "mi-monitor"
+version = "1.0.0"
+description = "米家设备实时监控系统 - Windows版"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+keywords = ["mijia", "xiaomi", "monitor", "iot", "smart-home"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Home Automation",
+]
+
+dependencies = [
+    "mijiaAPI>=2.0.0",
+    "PyQt6>=6.6.0",
+    "PyQt6-Charts>=6.6.0",
+    "pyqtgraph>=0.13.0",
+    "pandas>=2.1.0",
+    "numpy>=1.24.0",
+    "PyYAML>=6.0",
+    "colorlog>=6.7.0",
+    "Pillow>=10.0.0",
+    "requests>=2.32.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "pytest>=7.0.0",
+]
+
+[project.scripts]
+mi-monitor = "src.main:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+
+[tool.pyinstaller]
+name = "MiMonitor"

@@ -1,0 +1,27 @@
+# 米家API依赖
+mijiaAPI>=2.0.0
+requests>=2.32.3
+
+# GUI框架
+PyQt6>=6.6.0
+PyQt6-Charts>=6.6.0
+pyqtgraph>=0.13.0
+
+# 数据库
+# SQLite是Python内置的,无需额外安装
+
+# 数据处理
+pandas>=2.1.0
+numpy>=1.24.0
+
+# 配置文件
+PyYAML>=6.0
+
+# 打包工具(开发环境)
+pyinstaller>=6.0.0
+
+# 日志
+colorlog>=6.7.0
+
+# 系统托盘图标
+Pillow>=10.0.0
