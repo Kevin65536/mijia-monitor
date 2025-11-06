@@ -59,3 +59,6 @@ htmlcov/
 temp/
 tmp/
 *.tmp
+
+# reference and dependency 
+mijia-api
