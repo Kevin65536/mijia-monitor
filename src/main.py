@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 
 from .utils.config_loader import ConfigLoader
 from .utils.logger import setup_logger

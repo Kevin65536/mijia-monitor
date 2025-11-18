@@ -25,6 +25,7 @@ MANIFEST
 
 # Virtual Environment
 venv/
+venv_*/
 ENV/
 env/
 .venv
@@ -46,7 +47,6 @@ exports/
 *.qrc
 
 # PyInstaller
-*.spec
 build/
 dist/
 
@@ -59,6 +59,15 @@ htmlcov/
 temp/
 tmp/
 *.tmp
+backup_*/
+
+# Diagnostic and test scripts (development only)
+*_diagnose.py
+check_dll_deps.py
+convert_to_pyside6.py
+test_*.py
+verify_qt.py
+run_fix.bat
 
 # reference and dependency 
 mijia-api

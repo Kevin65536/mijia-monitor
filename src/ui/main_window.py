@@ -4,14 +4,14 @@ from datetime import datetime
 from typing import Dict, Any, List
 from pathlib import Path
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QTableWidget, QTableWidgetItem, QLabel, QTabWidget, QStatusBar,
     QMessageBox, QHeaderView, QSystemTrayIcon, QMenu, QDialog,
     QLineEdit, QCheckBox, QSpinBox, QFormLayout
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread
-from PyQt6.QtGui import QIcon, QAction
+from PySide6.QtCore import Qt, QTimer, Signal, QThread
+from PySide6.QtGui import QIcon, QAction
 
 from ..core.database import DatabaseManager
 from ..core.monitor import DeviceMonitor
@@ -25,9 +25,9 @@ class MainWindow(QMainWindow):
     """主窗口类"""
     
     # 信号定义
-    device_update_signal = pyqtSignal(dict)
-    device_offline_signal = pyqtSignal(dict)
-    status_update_signal = pyqtSignal(str)
+    device_update_signal = Signal(dict)
+    device_offline_signal = Signal(dict)
+    status_update_signal = Signal(str)
     
     def __init__(self, config: ConfigLoader, database: DatabaseManager, monitor: DeviceMonitor):
         super().__init__()
@@ -487,4 +487,4 @@ class MainWindow(QMainWindow):
 
 
 # 需要在顶部导入
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication

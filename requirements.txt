@@ -3,9 +3,9 @@ mijiaAPI>=2.0.0
 requests>=2.32.3
 
 # GUI框架
-PyQt6>=6.6.0
-PyQt6-Charts>=6.6.0
-pyqtgraph>=0.13.0
+PySide6>=6.6.0
+# PySide6-Charts (included in PySide6)
+pyqtgraph>=0.13.0  # Compatible with both PyQt and PySide
 
 # 数据库
 # SQLite是Python内置的,无需额外安装

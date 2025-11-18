@@ -3,7 +3,7 @@
 # 应用程序配置
 app:
   name: "米家设备监控"
-  version: "1.0.0"
+  version: "1.1.0"
   language: "zh_CN"
   theme: "light"  # light, dark, auto
 
