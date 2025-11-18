@@ -1,26 +1,47 @@
 """米家设备监控系统主程序"""
 import sys
+import os
 from pathlib import Path
 
 from PySide6.QtWidgets import QApplication
 
-from .utils.config_loader import ConfigLoader
-from .utils.logger import setup_logger
-from .core.database import DatabaseManager
-from .core.monitor import DeviceMonitor
-from .ui.main_window import MainWindow
+# 修复打包后的导入问题
+if getattr(sys, 'frozen', False):
+    # 打包后的环境
+    application_path = Path(sys.executable).parent
+    # 添加bundled目录到sys.path
+    bundle_dir = getattr(sys, '_MEIPASS', None)
+    if bundle_dir:
+        sys.path.insert(0, bundle_dir)
+else:
+    # 开发环境
+    application_path = Path(__file__).parent.parent
+
+# 使用绝对导入
+from src.utils.config_loader import ConfigLoader
+from src.utils.logger import setup_logger
+from src.core.database import DatabaseManager
+from src.core.monitor import DeviceMonitor
+from src.ui.main_window import MainWindow
 
 
 def main():
     """主函数"""
     # 获取项目根目录
-    root_dir = Path(__file__).parent.parent
+    if getattr(sys, 'frozen', False):
+        # 打包后，使用exe所在目录
+        root_dir = Path(sys.executable).parent
+    else:
+        # 开发环境
+        root_dir = Path(__file__).parent.parent
     
     # 加载配置
     config = ConfigLoader()
     
-    # 设置日志
+    # 设置日志 - 确保日志目录存在
     log_file = root_dir / config.get('logging.file', 'logs/mi-monitor.log')
+    log_file.parent.mkdir(parents=True, exist_ok=True)  # 创建日志目录
+    
     logger = setup_logger(
         name='mi-monitor',
         log_file=str(log_file),
@@ -35,8 +56,9 @@ def main():
     logger.info(f"版本: {config.get('app.version', '1.0.0')}")
     logger.info("=" * 60)
     
-    # 初始化数据库
+    # 初始化数据库 - 确保数据目录存在
     db_path = root_dir / config.get('database.path', 'data/monitor.db')
+    db_path.parent.mkdir(parents=True, exist_ok=True)  # 创建数据目录
     database = DatabaseManager(str(db_path))
     logger.info(f"数据库初始化完成: {db_path}")
     
