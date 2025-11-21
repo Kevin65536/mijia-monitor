@@ -17,6 +17,7 @@ from ..core.database import DatabaseManager
 from ..core.monitor import DeviceMonitor
 from ..utils.config_loader import ConfigLoader
 from ..utils.logger import get_logger
+from .device_detail_dialog import DeviceDetailDialog
 
 logger = get_logger(__name__)
 
@@ -36,6 +37,15 @@ class MainWindow(QMainWindow):
         self.database = database
         self.monitor = monitor
         
+        # 刷新锁，防止重复刷新
+        self._is_refreshing = False
+        
+        # 属性缓存 - 避免频繁查询数据库
+        self._property_cache: Dict[str, Dict[str, Any]] = {}
+        
+        # 设备ID到行号的映射缓存
+        self._did_to_row: Dict[str, int] = {}
+        
         # 注册监控回调
         self.monitor.register_callback('device_update', self._on_device_update)
         self.monitor.register_callback('device_offline', self._on_device_offline)
@@ -49,12 +59,11 @@ class MainWindow(QMainWindow):
         self.init_ui()
         self.setup_system_tray()
         
-        # 启动定时器更新界面
-        self.update_timer = QTimer()
-        self.update_timer.timeout.connect(self.refresh_device_list)
-        self.update_timer.start(
-            self.config.get('performance.ui_update_interval', 1000)
-        )
+        # 禁用自动刷新定时器，改为事件驱动更新
+        # 自动刷新会导致UI卡顿，因为需要查询所有设备的属性
+        # self.update_timer = QTimer()
+        # self.update_timer.timeout.connect(self.refresh_device_list)
+        # self.update_timer.start(5000)
     
     def init_ui(self) -> None:
         """初始化UI"""
@@ -134,9 +143,9 @@ class MainWindow(QMainWindow):
         
         # 设备表格
         self.device_table = QTableWidget()
-        self.device_table.setColumnCount(7)
+        self.device_table.setColumnCount(8)
         self.device_table.setHorizontalHeaderLabels([
-            "设备名称", "型号", "房间", "状态", "最后更新", "监控间隔", "操作"
+            "设备名称", "型号", "房间", "状态", "实时数据", "最后更新", "监控间隔", "操作"
         ])
         
         # 设置表格属性
@@ -144,6 +153,7 @@ class MainWindow(QMainWindow):
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         
         self.device_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
@@ -224,50 +234,68 @@ class MainWindow(QMainWindow):
     
     def refresh_device_list(self) -> None:
         """刷新设备列表"""
-        devices = self.database.get_all_devices()
+        # 防止重复刷新
+        if self._is_refreshing:
+            return
         
-        self.device_table.setRowCount(len(devices))
-        
-        for row, device in enumerate(devices):
-            # 设备名称
-            self.device_table.setItem(row, 0, QTableWidgetItem(device['name'] or '未知'))
+        try:
+            self._is_refreshing = True
+            devices = self.database.get_all_devices()
             
-            # 型号
-            self.device_table.setItem(row, 1, QTableWidgetItem(device['model'] or '-'))
+            self.device_table.setRowCount(len(devices))
             
-            # 房间
-            self.device_table.setItem(row, 2, QTableWidgetItem(device['room_name'] or '-'))
+            # 重建 did 到行号的映射
+            self._did_to_row.clear()
             
-            # 状态
-            status = "在线" if device['online'] else "离线"
-            status_item = QTableWidgetItem(status)
-            if device['online']:
-                status_item.setForeground(Qt.GlobalColor.darkGreen)
-            else:
-                status_item.setForeground(Qt.GlobalColor.red)
-            self.device_table.setItem(row, 3, status_item)
+            for row, device in enumerate(devices):
+                # 缓存 did 到行号的映射
+                self._did_to_row[device['did']] = row
+                
+                # 设备名称
+                self.device_table.setItem(row, 0, QTableWidgetItem(device['name'] or '未知'))
+                
+                # 型号
+                self.device_table.setItem(row, 1, QTableWidgetItem(device['model'] or '-'))
+                
+                # 房间
+                self.device_table.setItem(row, 2, QTableWidgetItem(device['room_name'] or '-'))
+                
+                # 状态
+                status = "在线" if device['online'] else "离线"
+                status_item = QTableWidgetItem(status)
+                if device['online']:
+                    status_item.setForeground(Qt.GlobalColor.darkGreen)
+                else:
+                    status_item.setForeground(Qt.GlobalColor.red)
+                self.device_table.setItem(row, 3, status_item)
+                
+                # 实时数据 - 暂时显示为空，避免查询卡顿
+                # 启动监控后会自动更新
+                self.device_table.setItem(row, 4, QTableWidgetItem("-"))
+                
+                # 最后更新时间
+                last_seen = device['last_seen'] or '-'
+                if last_seen != '-':
+                    try:
+                        dt = datetime.fromisoformat(last_seen.replace('Z', '+00:00'))
+                        last_seen = dt.strftime('%Y-%m-%d %H:%M:%S')
+                    except:
+                        pass
+                self.device_table.setItem(row, 5, QTableWidgetItem(last_seen))
+                
+                # 监控间隔
+                interval = device.get('monitor_interval', 60)
+                self.device_table.setItem(row, 6, QTableWidgetItem(f"{interval}秒"))
+                
+                # 操作按钮
+                btn = QPushButton("查看详情")
+                btn.clicked.connect(lambda checked, d=device: self.show_device_detail(d))
+                self.device_table.setCellWidget(row, 7, btn)
             
-            # 最后更新时间
-            last_seen = device['last_seen'] or '-'
-            if last_seen != '-':
-                try:
-                    dt = datetime.fromisoformat(last_seen.replace('Z', '+00:00'))
-                    last_seen = dt.strftime('%Y-%m-%d %H:%M:%S')
-                except:
-                    pass
-            self.device_table.setItem(row, 4, QTableWidgetItem(last_seen))
-            
-            # 监控间隔
-            interval = device.get('monitor_interval', 60)
-            self.device_table.setItem(row, 5, QTableWidgetItem(f"{interval}秒"))
-            
-            # 操作按钮
-            btn = QPushButton("查看详情")
-            btn.clicked.connect(lambda checked, d=device: self.show_device_detail(d))
-            self.device_table.setCellWidget(row, 6, btn)
-        
-        # 更新统计
-        self.update_stats_label()
+            # 更新统计
+            self.update_stats_label()
+        finally:
+            self._is_refreshing = False
     
     def refresh_alert_list(self) -> None:
         """刷新报警列表"""
@@ -397,18 +425,50 @@ class MainWindow(QMainWindow):
                 "账号密码登录可能需要手机验证码,建议使用二维码登录"
             )
     
+    def _format_device_status(self, did: str) -> str:
+        """格式化设备状态信息"""
+        try:
+            properties = self.database.get_latest_device_properties(did)
+            
+            if not properties:
+                return "-"
+            
+            # 定义关键属性及其显示格式
+            key_props = {
+                'temperature': ('{}°C', 1),
+                'relative-humidity': ('{}%', 0),
+                'electric-power': ('{}W', 1),
+                'power': ('{}W', 1),
+                'electric-current': ('{}A', 2),
+                'voltage': ('{}V', 1),
+                'battery-level': ('电量{}%', 0),
+            }
+            
+            status_parts = []
+            
+            for prop_name, (fmt, precision) in key_props.items():
+                if prop_name in properties:
+                    try:
+                        value = float(properties[prop_name]['value'])
+                        if precision == 0:
+                            value = int(value)
+                        else:
+                            value = round(value, precision)
+                        status_parts.append(fmt.format(value))
+                    except (ValueError, TypeError):
+                        continue
+            
+            return ' | '.join(status_parts) if status_parts else "-"
+            
+        except Exception as e:
+            logger.error(f"格式化设备状态失败: {e}")
+            return "-"
+    
     def show_device_detail(self, device: Dict[str, Any]) -> None:
         """显示设备详情"""
-        QMessageBox.information(
-            self,
-            f"设备详情 - {device['name']}",
-            f"DID: {device['did']}\n"
-            f"型号: {device['model']}\n"
-            f"房间: {device['room_name'] or '无'}\n"
-            f"状态: {'在线' if device['online'] else '离线'}\n"
-            f"首次发现: {device['first_seen']}\n"
-            f"最后更新: {device['last_seen']}"
-        )
+        # 使用新的详情对话框
+        dialog = DeviceDetailDialog(device, self.database, self)
+        dialog.exec()
     
     def _on_device_update(self, data: Dict[str, Any]) -> None:
         """设备更新回调"""
@@ -435,8 +495,34 @@ class MainWindow(QMainWindow):
     
     def _handle_device_update(self, data: Dict[str, Any]) -> None:
         """处理设备更新信号"""
-        # 更新设备列表(节流,避免频繁更新)
-        pass
+        # 更新缓存
+        did = data.get('did')
+        properties = data.get('properties', {})
+        
+        if did and properties:
+            # 更新缓存
+            if did not in self._property_cache:
+                self._property_cache[did] = {}
+            
+            for prop_name, value in properties.items():
+                self._property_cache[did][prop_name] = {
+                    'value': value,
+                    'timestamp': datetime.now().isoformat()
+                }
+        
+        # 更新特定设备的实时数据显示
+        if not did:
+            return
+        
+        try:
+            # 使用缓存的映射直接找到行号，避免数据库查询
+            row = self._did_to_row.get(did)
+            if row is not None and row < self.device_table.rowCount():
+                # 更新实时数据列 - 使用缓存
+                status_info = self._format_device_status(did)
+                self.device_table.setItem(row, 4, QTableWidgetItem(status_info))
+        except Exception as e:
+            logger.error(f"更新设备显示失败: {e}")
     
     def _handle_device_offline(self, data: Dict[str, Any]) -> None:
         """处理设备离线信号"""

@@ -312,6 +312,82 @@ class DatabaseManager:
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
     
+    def get_latest_device_properties(self, did: str) -> Dict[str, Any]:
+        """
+        获取设备所有属性的最新值
+        
+        Args:
+            did: 设备ID
+            
+        Returns:
+            属性名和最新值的字典 {property_name: {value, value_type, timestamp}}
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 使用子查询获取每个属性的最新记录
+            cursor.execute('''
+                SELECT property_name, property_value, value_type, timestamp
+                FROM device_properties dp1
+                WHERE did = ? AND timestamp = (
+                    SELECT MAX(timestamp)
+                    FROM device_properties dp2
+                    WHERE dp2.did = dp1.did AND dp2.property_name = dp1.property_name
+                )
+                ORDER BY property_name
+            ''', (did,))
+            
+            result = {}
+            for row in cursor.fetchall():
+                row_dict = dict(row)
+                property_name = row_dict['property_name']
+                result[property_name] = {
+                    'value': row_dict['property_value'],
+                    'value_type': row_dict['value_type'],
+                    'timestamp': row_dict['timestamp']
+                }
+            
+            return result
+    
+    def get_all_latest_device_properties(self) -> Dict[str, Dict[str, Any]]:
+        """
+        批量获取所有设备的最新属性值（性能优化版本）
+        
+        Returns:
+            {did: {property_name: {value, value_type, timestamp}}}
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 使用一次查询获取所有设备的最新属性
+            cursor.execute('''
+                SELECT did, property_name, property_value, value_type, timestamp
+                FROM device_properties dp1
+                WHERE timestamp = (
+                    SELECT MAX(timestamp)
+                    FROM device_properties dp2
+                    WHERE dp2.did = dp1.did AND dp2.property_name = dp1.property_name
+                )
+                ORDER BY did, property_name
+            ''')
+            
+            result = {}
+            for row in cursor.fetchall():
+                row_dict = dict(row)
+                did = row_dict['did']
+                property_name = row_dict['property_name']
+                
+                if did not in result:
+                    result[did] = {}
+                
+                result[did][property_name] = {
+                    'value': row_dict['property_value'],
+                    'value_type': row_dict['value_type'],
+                    'timestamp': row_dict['timestamp']
+                }
+            
+            return result
+    
     def add_alert(
         self,
         did: str,
