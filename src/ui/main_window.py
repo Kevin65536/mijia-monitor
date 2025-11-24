@@ -213,8 +213,14 @@ class MainWindow(QMainWindow):
         # 创建托盘图标
         self.tray_icon = QSystemTrayIcon(self)
         
-        # 设置图标(这里使用默认图标,实际应使用自定义图标)
-        # self.tray_icon.setIcon(QIcon("resources/icons/app.ico"))
+        # 设置图标 - 优先使用自定义图标，否则使用系统默认图标
+        icon_path = Path("resources/icons/app.ico")
+        if icon_path.exists():
+            self.tray_icon.setIcon(QIcon(str(icon_path)))
+        else:
+            # 使用Qt内置图标作为后备
+            from PySide6.QtWidgets import QStyle
+            self.tray_icon.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon))
         
         # 创建托盘菜单
         tray_menu = QMenu()
