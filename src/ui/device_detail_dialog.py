@@ -11,6 +11,7 @@ from PySide6.QtGui import QFont
 
 from ..core.database import DatabaseManager
 from ..utils.logger import get_logger
+from .charts import DeviceChartWidget
 
 logger = get_logger(__name__)
 
@@ -30,7 +31,7 @@ class DeviceDetailDialog(QDialog):
     def init_ui(self) -> None:
         """初始化UI"""
         self.setWindowTitle(f"设备详情 - {self.device['name']}")
-        self.resize(800, 600)
+        self.resize(900, 700)
         
         layout = QVBoxLayout(self)
         
@@ -45,8 +46,9 @@ class DeviceDetailDialog(QDialog):
         self.properties_tab = self.create_properties_tab()
         tab_widget.addTab(self.properties_tab, "当前属性")
         
-        # 历史数据选项卡
-        # TODO: 未来可以添加图表展示
+        # 历史数据图表选项卡
+        self.charts_tab = self.create_charts_tab()
+        tab_widget.addTab(self.charts_tab, "历史趋势")
         
         layout.addWidget(tab_widget)
         
@@ -69,14 +71,13 @@ class DeviceDetailDialog(QDialog):
         layout = QHBoxLayout()
         
         info_text = f"""
-<b>设备名称:</b> {self.device['name']}<br>
-<b>设备ID:</b> {self.device['did']}<br>
-<b>设备型号:</b> {self.device['model']}<br>
-<b>所在房间:</b> {self.device['room_name'] or '未分配'}<br>
-<b>在线状态:</b> {'<span style="color: green;">在线</span>' if self.device['online'] else '<span style="color: red;">离线</span>'}<br>
-<b>首次发现:</b> {self._format_datetime(self.device['first_seen'])}<br>
-<b>最后更新:</b> {self._format_datetime(self.device['last_seen'])}<br>
-<b>监控间隔:</b> {self.device.get('monitor_interval', 60)} 秒
+        <h3>{self.device['name']}</h3>
+        <b>设备ID:</b> {self.device['did']}<br>
+        <b>设备型号:</b> {self.device['model']}<br>
+        <b>所在房间:</b> {self.device['room_name'] or '未分配'}<br>
+        <b>在线状态:</b> {'<span style="color: green;">在线</span>' if self.device['online'] else '<span style="color: red;">离线</span>'}<br>
+        <b>最后更新:</b> {self._format_datetime(self.device['last_seen'])}<br>
+        <b>监控间隔:</b> {self.device.get('monitor_interval', 60)} 秒
         """
         
         info_label = QLabel(info_text)
@@ -120,63 +121,129 @@ class DeviceDetailDialog(QDialog):
         layout.addWidget(self.properties_table)
         
         return widget
+
+    def create_charts_tab(self) -> QWidget:
+        """创建图表选项卡"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        self.chart_widget = DeviceChartWidget()
+        layout.addWidget(self.chart_widget)
+        
+        return widget
     
     def load_data(self) -> None:
         """加载数据"""
         try:
-            # 获取最新属性
+            # 1. 加载当前属性
             properties = self.database.get_latest_device_properties(self.device['did'])
+            self._update_properties_table(properties)
             
-            self.properties_table.setRowCount(len(properties))
+            # 2. 加载历史数据并更新图表
+            self._update_charts()
             
-            # 定义属性的友好名称映射
-            friendly_names = {
-                'temperature': '温度',
-                'relative-humidity': '相对湿度',
-                'electric-power': '功率',
-                'power': '功率',
-                'electric-current': '电流',
-                'voltage': '电压',
-                'battery-level': '电池电量',
-                'on': '开关状态',
-                'brightness': '亮度',
-                'color-temperature': '色温',
-            }
-            
-            # 按属性名称排序
-            sorted_props = sorted(properties.items())
-            
-            for row, (prop_name, prop_data) in enumerate(sorted_props):
-                # 属性名称 (显示友好名称)
-                display_name = friendly_names.get(prop_name, prop_name)
-                name_item = QTableWidgetItem(display_name)
-                name_item.setToolTip(f"原始名称: {prop_name}")
-                self.properties_table.setItem(row, 0, name_item)
-                
-                # 当前值
-                value = prop_data['value']
-                formatted_value = self._format_property_value(prop_name, value)
-                self.properties_table.setItem(row, 1, QTableWidgetItem(formatted_value))
-                
-                # 类型
-                value_type = prop_data.get('value_type', '-')
-                self.properties_table.setItem(row, 2, QTableWidgetItem(value_type))
-                
-                # 更新时间
-                timestamp = self._format_datetime(prop_data['timestamp'])
-                self.properties_table.setItem(row, 3, QTableWidgetItem(timestamp))
-            
-            # 如果没有属性,显示提示
-            if not properties:
-                self.properties_table.setRowCount(1)
-                self.properties_table.setItem(0, 0, QTableWidgetItem("暂无属性数据"))
-                self.properties_table.setSpan(0, 0, 1, 4)
-        
         except Exception as e:
-            logger.error(f"加载设备属性失败: {e}")
+            logger.error(f"加载设备数据失败: {e}")
             self.properties_table.setRowCount(1)
             self.properties_table.setItem(0, 0, QTableWidgetItem(f"加载失败: {e}"))
             self.properties_table.setSpan(0, 0, 1, 4)
+
+    def _update_properties_table(self, properties: Dict[str, Any]) -> None:
+        """更新属性表格"""
+        self.properties_table.setRowCount(len(properties))
+        
+        # 定义属性的友好名称映射
+        friendly_names = {
+            'temperature': '温度',
+            'relative-humidity': '相对湿度',
+            'electric-power': '功率',
+            'power': '功率',
+            'electric-current': '电流',
+            'voltage': '电压',
+            'battery-level': '电池电量',
+            'on': '开关状态',
+            'brightness': '亮度',
+            'color-temperature': '色温',
+        }
+        
+        # 按属性名称排序
+        sorted_props = sorted(properties.items())
+        
+        for row, (prop_name, prop_data) in enumerate(sorted_props):
+            # 属性名称 (显示友好名称)
+            display_name = friendly_names.get(prop_name, prop_name)
+            name_item = QTableWidgetItem(display_name)
+            name_item.setToolTip(f"原始名称: {prop_name}")
+            self.properties_table.setItem(row, 0, name_item)
+            
+            # 当前值
+            value = prop_data['value']
+            formatted_value = self._format_property_value(prop_name, value)
+            self.properties_table.setItem(row, 1, QTableWidgetItem(formatted_value))
+            
+            # 类型
+            value_type = prop_data.get('value_type', '-')
+            self.properties_table.setItem(row, 2, QTableWidgetItem(value_type))
+            
+            # 更新时间
+            timestamp = self._format_datetime(prop_data['timestamp'])
+            self.properties_table.setItem(row, 3, QTableWidgetItem(timestamp))
+        
+        # 如果没有属性,显示提示
+        if not properties:
+            self.properties_table.setRowCount(1)
+            self.properties_table.setItem(0, 0, QTableWidgetItem("暂无属性数据"))
+            self.properties_table.setSpan(0, 0, 1, 4)
+
+    def _update_charts(self) -> None:
+        """更新图表数据"""
+        self.chart_widget.clear()
+        
+        # 定义需要绘图的属性及其颜色
+        chart_props = {
+            'temperature': {'color': '#FF6B6B', 'name': '温度 (°C)'},
+            'relative-humidity': {'color': '#4ECDC4', 'name': '湿度 (%)'},
+            'power': {'color': '#FFE66D', 'name': '功率 (W)'},
+            'electric-power': {'color': '#FFE66D', 'name': '功率 (W)'},
+            'battery-level': {'color': '#95E1D3', 'name': '电量 (%)'}
+        }
+        
+        has_data = False
+        
+        # 遍历可能的属性
+        for prop_name, config in chart_props.items():
+            # 获取最近24小时的数据
+            history = self.database.get_device_properties_history(
+                self.device['did'], 
+                prop_name, 
+                limit=100  # 限制点数，避免太卡
+            )
+            
+            if history:
+                has_data = True
+                timestamps = []
+                values = []
+                
+                # 数据按时间正序排列
+                for record in reversed(history):
+                    try:
+                        # 解析时间戳
+                        dt = datetime.fromisoformat(record['timestamp'].replace('Z', '+00:00'))
+                        ts = dt.timestamp()
+                        val = float(record['property_value'])
+                        
+                        timestamps.append(ts)
+                        values.append(val)
+                    except (ValueError, TypeError):
+                        continue
+                
+                if timestamps:
+                    self.chart_widget.plot_data(
+                        name=config['name'],
+                        timestamps=timestamps,
+                        values=values,
+                        color=config['color']
+                    )
     
     def _format_property_value(self, prop_name: str, value: str) -> str:
         """格式化属性值"""
