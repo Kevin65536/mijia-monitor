@@ -1,5 +1,5 @@
 """设备详情对话框"""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any
 
 from PySide6.QtWidgets import (
@@ -281,6 +281,12 @@ class DeviceDetailDialog(QDialog):
         
         try:
             dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
-            return dt.strftime('%Y-%m-%d %H:%M:%S')
+            # 如果是naive时间(没有时区信息)，假定为UTC
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+                
+            # 转换为本地时间
+            dt_local = dt.astimezone()
+            return dt_local.strftime('%Y-%m-%d %H:%M:%S')
         except:
             return str(dt_str)
