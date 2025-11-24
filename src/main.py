@@ -2,8 +2,10 @@
 import sys
 import os
 from pathlib import Path
+import signal
 
 from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QTimer
 
 # 修复打包后的导入问题
 if getattr(sys, 'frozen', False):
@@ -84,6 +86,24 @@ def main():
     if config.get('monitor.auto_start', False):
         logger.info("自动启动监控...")
         monitor.start_monitor()
+    
+    # 设置信号处理，允许 Ctrl+C 退出
+    def signal_handler(sig, frame):
+        logger.info("接收到中断信号，正在退出...")
+        # 停止监控
+        if 'monitor' in locals():
+            monitor.stop_monitor()
+        app.quit()
+        
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    # 创建定时器让解释器有机会处理信号
+    # Python的信号处理只能在主线程执行，且只有在解释器执行Python代码时才能处理
+    # Qt的事件循环是C++代码，会阻塞Python解释器
+    # 通过定时器定期唤醒Python解释器，使其有机会处理信号
+    timer = QTimer()
+    timer.start(500)
+    timer.timeout.connect(lambda: None)
     
     # 运行应用
     logger.info("应用程序界面已启动")
