@@ -6,6 +6,7 @@ import signal
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
+from PySide6.QtGui import QIcon
 
 # 修复打包后的导入问题
 if getattr(sys, 'frozen', False):
@@ -22,6 +23,7 @@ else:
 # 使用绝对导入
 from src.utils.config_loader import ConfigLoader
 from src.utils.logger import setup_logger
+from src.utils.path_utils import get_app_path, get_resource_path
 from src.core.database import DatabaseManager
 from src.core.monitor import DeviceMonitor
 from src.ui.main_window import MainWindow
@@ -29,13 +31,8 @@ from src.ui.main_window import MainWindow
 
 def main():
     """主函数"""
-    # 获取项目根目录
-    if getattr(sys, 'frozen', False):
-        # 打包后，使用exe所在目录
-        root_dir = Path(sys.executable).parent
-    else:
-        # 开发环境
-        root_dir = Path(__file__).parent.parent
+    # 获取应用程序运行目录
+    root_dir = get_app_path()
     
     # 加载配置
     config = ConfigLoader()
@@ -68,10 +65,30 @@ def main():
     monitor = DeviceMonitor(config, database)
     logger.info("设备监控器初始化完成")
     
+    # 设置Windows AppUserModelID，确保任务栏图标正确显示
+    if sys.platform == 'win32':
+        import ctypes
+        myappid = f"kevin.mijia_monitor.app.{config.get('app.version', '1.0.0')}"
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
     # 创建Qt应用
     app = QApplication(sys.argv)
     app.setApplicationName(config.get('app.name', '米家设备监控'))
     app.setApplicationVersion(config.get('app.version', '1.0.0'))
+    
+    # 设置应用图标
+    # 优先尝试加载 PNG (通常显示效果更好)，其次是 ICO
+    icon_path_png = get_resource_path("resources/icons/app.png")
+    icon_path_ico = get_resource_path("resources/icons/app.ico")
+    
+    app_icon = QIcon()
+    if icon_path_png.exists():
+        app_icon.addFile(str(icon_path_png))
+    if icon_path_ico.exists():
+        app_icon.addFile(str(icon_path_ico))
+        
+    if not app_icon.isNull():
+        app.setWindowIcon(app_icon)
     
     # 创建主窗口
     window = MainWindow(config, database, monitor)

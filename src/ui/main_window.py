@@ -17,6 +17,7 @@ from ..core.database import DatabaseManager
 from ..core.monitor import DeviceMonitor
 from ..utils.config_loader import ConfigLoader
 from ..utils.logger import get_logger
+from ..utils.path_utils import get_resource_path
 from .device_detail_dialog import DeviceDetailDialog
 
 logger = get_logger(__name__)
@@ -214,7 +215,7 @@ class MainWindow(QMainWindow):
         self.tray_icon = QSystemTrayIcon(self)
         
         # 设置图标 - 优先使用自定义图标，否则使用系统默认图标
-        icon_path = Path("resources/icons/app.ico")
+        icon_path = get_resource_path("resources/icons/app.ico")
         if icon_path.exists():
             self.tray_icon.setIcon(QIcon(str(icon_path)))
         else:

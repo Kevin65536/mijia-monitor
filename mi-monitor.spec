@@ -14,6 +14,9 @@ src_path = project_root / 'src'
 # 添加mijia-api路径
 mijia_api_path = project_root.parent / 'mijia-api'
 
+# 图标路径
+icon_path = project_root / 'resources' / 'icons' / 'app.ico'
+
 block_cipher = None
 
 # 分析主程序
@@ -27,8 +30,8 @@ a = Analysis(
     datas=[
         # 包含配置文件
         ('config/config.yaml', 'config'),
-        # 如果有资源文件
-        # ('resources', 'resources'),
+        # 包含资源文件 (图标等)
+        ('resources', 'resources'),
     ],
     hiddenimports=[
         'mijiaAPI',
@@ -79,8 +82,8 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    # 图标(如果有的话)
-    # icon='resources/icons/app.ico',
+    # 图标
+    icon=str(icon_path),
 )
 
 # 如果需要生成目录形式的分发版本,取消下面的注释

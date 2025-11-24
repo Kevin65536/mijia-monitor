@@ -3,6 +3,7 @@ import os
 import yaml
 from typing import Any, Dict
 from pathlib import Path
+from .path_utils import get_app_path
 
 
 class ConfigLoader:
@@ -16,8 +17,8 @@ class ConfigLoader:
             config_path: 配置文件路径,默认为项目根目录下的config/config.yaml
         """
         if config_path is None:
-            # 获取项目根目录
-            root_dir = Path(__file__).parent.parent.parent
+            # 获取应用程序运行目录
+            root_dir = get_app_path()
             config_path = root_dir / "config" / "config.yaml"
         
         self.config_path = Path(config_path)
