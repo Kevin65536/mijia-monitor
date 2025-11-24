@@ -86,6 +86,15 @@ def main():
     if config.get('monitor.auto_start', False):
         logger.info("自动启动监控...")
         monitor.start_monitor()
+        
+    # 启动调试控制台
+    try:
+        from src.utils.debug_console import DebugConsole
+        debug_console = DebugConsole(monitor, database)
+        debug_console.start()
+        logger.info("调试控制台已启动")
+    except Exception as e:
+        logger.error(f"启动调试控制台失败: {e}")
     
     # 设置信号处理，允许 Ctrl+C 退出
     def signal_handler(sig, frame):
