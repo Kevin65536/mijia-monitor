@@ -10,6 +10,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
 from ..core.database import DatabaseManager
+from ..core.device_profiles import DeviceProfileFactory
 from ..utils.logger import get_logger
 from .charts import DeviceChartWidget
 
@@ -24,6 +25,7 @@ class DeviceDetailDialog(QDialog):
         
         self.device = device
         self.database = database
+        self.profile = DeviceProfileFactory.create_profile(device.get('model', ''))
         
         self.init_ui()
         self.load_data()
@@ -150,47 +152,27 @@ class DeviceDetailDialog(QDialog):
 
     def _update_properties_table(self, properties: Dict[str, Any]) -> None:
         """更新属性表格"""
-        self.properties_table.setRowCount(len(properties))
+        display_props = self.profile.get_display_properties(properties)
+        self.properties_table.setRowCount(len(display_props))
         
-        # 定义属性的友好名称映射
-        friendly_names = {
-            'temperature': '温度',
-            'relative-humidity': '相对湿度',
-            'electric-power': '功率',
-            'power': '功率',
-            'electric-current': '电流',
-            'voltage': '电压',
-            'battery-level': '电池电量',
-            'on': '开关状态',
-            'brightness': '亮度',
-            'color-temperature': '色温',
-        }
-        
-        # 按属性名称排序
-        sorted_props = sorted(properties.items())
-        
-        for row, (prop_name, prop_data) in enumerate(sorted_props):
-            # 属性名称 (显示友好名称)
-            display_name = friendly_names.get(prop_name, prop_name)
-            name_item = QTableWidgetItem(display_name)
-            name_item.setToolTip(f"原始名称: {prop_name}")
+        for row, prop_data in enumerate(display_props):
+            # 属性名称
+            name_item = QTableWidgetItem(prop_data['name'])
+            name_item.setToolTip(f"原始名称: {prop_data['key']}")
             self.properties_table.setItem(row, 0, name_item)
             
             # 当前值
-            value = prop_data['value']
-            formatted_value = self._format_property_value(prop_name, value)
-            self.properties_table.setItem(row, 1, QTableWidgetItem(formatted_value))
+            self.properties_table.setItem(row, 1, QTableWidgetItem(prop_data['value']))
             
             # 类型
-            value_type = prop_data.get('value_type', '-')
-            self.properties_table.setItem(row, 2, QTableWidgetItem(value_type))
+            self.properties_table.setItem(row, 2, QTableWidgetItem(prop_data['type']))
             
             # 更新时间
             timestamp = self._format_datetime(prop_data['timestamp'])
             self.properties_table.setItem(row, 3, QTableWidgetItem(timestamp))
         
         # 如果没有属性,显示提示
-        if not properties:
+        if not display_props:
             self.properties_table.setRowCount(1)
             self.properties_table.setItem(0, 0, QTableWidgetItem("暂无属性数据"))
             self.properties_table.setSpan(0, 0, 1, 4)
@@ -199,14 +181,8 @@ class DeviceDetailDialog(QDialog):
         """更新图表数据"""
         self.chart_widget.clear()
         
-        # 定义需要绘图的属性及其颜色
-        chart_props = {
-            'temperature': {'color': '#FF6B6B', 'name': '温度 (°C)'},
-            'relative-humidity': {'color': '#4ECDC4', 'name': '湿度 (%)'},
-            'power': {'color': '#FFE66D', 'name': '功率 (W)'},
-            'electric-power': {'color': '#FFE66D', 'name': '功率 (W)'},
-            'battery-level': {'color': '#95E1D3', 'name': '电量 (%)'}
-        }
+        # 获取需要绘图的属性配置
+        chart_props = self.profile.get_chart_properties()
         
         has_data = False
         
@@ -244,35 +220,6 @@ class DeviceDetailDialog(QDialog):
                         values=values,
                         color=config['color']
                     )
-    
-    def _format_property_value(self, prop_name: str, value: str) -> str:
-        """格式化属性值"""
-        try:
-            # 针对特定属性添加单位
-            if prop_name in ['temperature']:
-                return f"{float(value):.1f}°C"
-            elif prop_name in ['relative-humidity', 'battery-level']:
-                return f"{int(float(value))}%"
-            elif prop_name in ['electric-power', 'power']:
-                return f"{float(value):.1f}W"
-            elif prop_name in ['electric-current']:
-                return f"{float(value):.2f}A"
-            elif prop_name in ['voltage']:
-                return f"{float(value):.1f}V"
-            elif prop_name in ['brightness']:
-                return f"{int(float(value))}%"
-            elif prop_name in ['color-temperature']:
-                return f"{int(float(value))}K"
-            elif prop_name in ['on']:
-                # 布尔值转换
-                if value.lower() in ['true', '1', 'on']:
-                    return "开启"
-                else:
-                    return "关闭"
-            else:
-                return str(value)
-        except (ValueError, TypeError):
-            return str(value)
     
     def _format_datetime(self, dt_str: str) -> str:
         """格式化日期时间"""
