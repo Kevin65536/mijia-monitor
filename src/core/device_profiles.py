@@ -24,6 +24,30 @@ class DeviceProfile:
             })
         return sorted(display_props, key=lambda x: x['name'])
 
+    def get_overview_properties(self, properties: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Get properties to display in the device list overview column.
+        """
+        # Default implementation: show common status properties
+        target_keys = [
+            'temperature', 'relative-humidity', 'electric-power', 'power',
+            'electric-current', 'voltage', 'battery-level'
+        ]
+        
+        display_props = []
+        
+        for key in target_keys:
+            if key in properties:
+                data = properties[key]
+                display_props.append({
+                    'key': key,
+                    'name': key,
+                    'value': self.format_value(key, data['value']),
+                    'type': data.get('value_type', '-'),
+                    'timestamp': data.get('timestamp', '-')
+                })
+        return display_props
+
     def get_chart_properties(self) -> Dict[str, Dict[str, Any]]:
         """
         Get configuration for properties to be charted.
@@ -72,6 +96,24 @@ class MiaoMiaoCeSensorHtT2Profile(DeviceProfile):
             'relative-humidity': '相对湿度',
             'battery-level': '电池电量',
         }
+
+    def get_overview_properties(self, properties: Dict[str, Any]) -> List[Dict[str, Any]]:
+        # Only show temperature, humidity and battery
+        target_keys = ['temperature', 'relative-humidity', 'battery-level']
+        display_props = []
+        friendly_names = self.get_friendly_names()
+        
+        for key in target_keys:
+            if key in properties:
+                data = properties[key]
+                display_props.append({
+                    'key': key,
+                    'name': friendly_names.get(key, key),
+                    'value': self.format_value(key, data['value']),
+                    'type': data.get('value_type', '-'),
+                    'timestamp': data.get('timestamp', '-')
+                })
+        return display_props
 
     def get_display_properties(self, properties: Dict[str, Any]) -> List[Dict[str, Any]]:
         # Define specific order and filtering

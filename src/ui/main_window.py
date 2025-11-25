@@ -15,6 +15,7 @@ from PySide6.QtGui import QIcon, QAction
 
 from ..core.database import DatabaseManager
 from ..core.monitor import DeviceMonitor
+from ..core.device_profiles import DeviceProfileFactory
 from ..utils.config_loader import ConfigLoader
 from ..utils.logger import get_logger
 from ..utils.path_utils import get_resource_path
@@ -510,35 +511,18 @@ class MainWindow(QMainWindow):
     def _format_device_status(self, did: str) -> str:
         """格式化设备状态信息"""
         try:
+            device = self.database.get_device(did)
+            if not device:
+                return "-"
+                
             properties = self.database.get_latest_device_properties(did)
-            
             if not properties:
                 return "-"
             
-            # 定义关键属性及其显示格式
-            key_props = {
-                'temperature': ('{}°C', 1),
-                'relative-humidity': ('{}%', 0),
-                'electric-power': ('{}W', 1),
-                'power': ('{}W', 1),
-                'electric-current': ('{}A', 2),
-                'voltage': ('{}V', 1),
-                'battery-level': ('电量{}%', 0),
-            }
+            profile = DeviceProfileFactory.create_profile(device.get('model', ''))
+            overview_props = profile.get_overview_properties(properties)
             
-            status_parts = []
-            
-            for prop_name, (fmt, precision) in key_props.items():
-                if prop_name in properties:
-                    try:
-                        value = float(properties[prop_name]['value'])
-                        if precision == 0:
-                            value = int(value)
-                        else:
-                            value = round(value, precision)
-                        status_parts.append(fmt.format(value))
-                    except (ValueError, TypeError):
-                        continue
+            status_parts = [prop['value'] for prop in overview_props]
             
             return ' | '.join(status_parts) if status_parts else "-"
             
