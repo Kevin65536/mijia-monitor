@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QTableWidget, QTableWidgetItem, QLabel, QTabWidget, QStatusBar,
     QMessageBox, QHeaderView, QSystemTrayIcon, QMenu, QDialog,
-    QLineEdit, QCheckBox, QSpinBox, QFormLayout
+    QLineEdit, QCheckBox, QSpinBox, QFormLayout, QProgressDialog
 )
 from PySide6.QtCore import Qt, QTimer, Signal, QThread
 from PySide6.QtGui import QIcon, QAction
@@ -19,9 +19,24 @@ from ..utils.config_loader import ConfigLoader
 from ..utils.logger import get_logger
 from ..utils.path_utils import get_resource_path
 from .device_detail_dialog import DeviceDetailDialog
+from .qr_login_dialog import QRLoginDialog
 
 logger = get_logger(__name__)
 
+
+class LogoutWorker(QThread):
+    """退出登录工作线程"""
+    finished_signal = Signal()
+    
+    def __init__(self, monitor):
+        super().__init__()
+        self.monitor = monitor
+        
+    def run(self):
+        """执行退出操作"""
+        if self.monitor.is_running:
+            self.monitor.stop_monitor()
+        self.finished_signal.emit()
 
 class MainWindow(QMainWindow):
     """主窗口类"""
@@ -112,14 +127,18 @@ class MainWindow(QMainWindow):
         
         # 加载设备列表
         self.refresh_device_list()
+        
+        # 更新登录按钮状态
+        self.update_login_button()
     
     def create_toolbar(self) -> QHBoxLayout:
         """创建工具栏"""
         toolbar = QHBoxLayout()
         
-        # 登录按钮(仅用于重新登录)
-        self.login_btn = QPushButton("重新登录")
-        self.login_btn.clicked.connect(self.on_login)
+        # 登录按钮 - 根据登录状态显示不同文本
+        self.login_btn = QPushButton()
+        self.login_btn.clicked.connect(self.on_login_logout)
+        self.update_login_button()
         toolbar.addWidget(self.login_btn)
         
         toolbar.addStretch()
@@ -369,6 +388,13 @@ class MainWindow(QMainWindow):
             f"报警: {stats['unresolved_alerts']}"
         )
     
+    def update_login_button(self) -> None:
+        """更新登录按钮的文本和状态"""
+        if self.monitor.api and self.monitor.api.available:
+            self.login_btn.setText("退出登录")
+        else:
+            self.login_btn.setText("米家登录")
+    
     def auto_refresh_and_start(self) -> bool:
         """自动刷新设备并启动监控"""
         # 检查是否已登录
@@ -399,36 +425,87 @@ class MainWindow(QMainWindow):
             logger.error("获取设备列表失败")
             return False
     
-    def on_login(self) -> None:
+    def on_login_logout(self) -> None:
+        """处理登录/退出登录"""
+        if self.monitor.api and self.monitor.api.available:
+            # 已登录，执行退出登录
+            self.logout()
+        else:
+            # 未登录，执行登录
+            self.login()
+    
+    def login(self) -> None:
         """登录米家账号"""
+        # 使用GUI二维码登录
+        dialog = QRLoginDialog(self.monitor, self)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # 登录成功
+            auth_data = dialog.get_auth_data()
+            if auth_data:
+                # 重新初始化API
+                self.monitor._init_mijia_api()
+                
+                # 更新登录按钮
+                self.update_login_button()
+                
+                QMessageBox.information(self, "成功", "登录成功!")
+                
+                # 自动刷新设备并启动监控
+                self.auto_refresh_and_start()
+        else:
+            # 登录取消或失败
+            logger.info("用户取消登录或登录失败")
+    
+    def logout(self) -> None:
+        """退出登录"""
         reply = QMessageBox.question(
             self,
-            "登录方式",
-            "使用二维码登录?\n\n点击Yes使用二维码登录\n点击No使用账号密码登录",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel
+            "确认退出",
+            "确定要退出登录吗？\n\n退出后将停止监控所有设备。",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            # 二维码登录
-            QMessageBox.information(
-                self,
-                "二维码登录",
-                "请在控制台查看二维码并使用米家APP扫描"
-            )
+            # 显示进度对话框
+            self.progress_dialog = QProgressDialog("正在停止监控...", None, 0, 0, self)
+            self.progress_dialog.setWindowTitle("请稍候")
+            self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+            self.progress_dialog.setCancelButton(None)  # 禁用取消按钮
+            self.progress_dialog.show()
             
-            if self.monitor.login(use_qr=True):
-                QMessageBox.information(self, "成功", "登录成功!")
-                self.auto_refresh_and_start()
-            else:
-                QMessageBox.warning(self, "失败", "登录失败")
+            # 启动后台线程执行退出操作
+            self.logout_worker = LogoutWorker(self.monitor)
+            self.logout_worker.finished_signal.connect(self._on_logout_finished)
+            self.logout_worker.start()
+    
+    def _on_logout_finished(self):
+        """退出操作完成回调"""
+        # 关闭进度对话框
+        if hasattr(self, 'progress_dialog'):
+            self.progress_dialog.close()
+            
+        logger.info("监控已停止")
         
-        elif reply == QMessageBox.StandardButton.No:
-            # 账号密码登录
-            QMessageBox.warning(
-                self,
-                "提示",
-                "账号密码登录可能需要手机验证码,建议使用二维码登录"
-            )
+        # 删除认证文件
+        auth_file = self.config.get('mijia.auth_file', 'config/mijia_auth.json')
+        auth_path = Path(auth_file)
+        
+        if auth_path.exists():
+            try:
+                auth_path.unlink()
+                logger.info("认证文件已删除")
+            except Exception as e:
+                logger.error(f"删除认证文件失败: {e}")
+        
+        # 清空API
+        self.monitor.api = None
+        
+        # 更新登录按钮
+        self.update_login_button()
+        
+        QMessageBox.information(self, "成功", "已退出登录")
+        self.status_bar.showMessage("已退出登录", 3000)
     
     def _format_device_status(self, did: str) -> str:
         """格式化设备状态信息"""

@@ -253,11 +253,13 @@ class DeviceMonitor:
                         last_check[did] = current_time
                 
                 # 等待一段时间
-                time.sleep(1)
+                if self.stop_event.wait(1):
+                    break
                 
             except Exception as e:
                 logger.error(f"任务调度出错: {e}")
-                time.sleep(5)
+                if self.stop_event.wait(5):
+                    break
     
     def _monitor_worker(self) -> None:
         """监控工作线程"""
