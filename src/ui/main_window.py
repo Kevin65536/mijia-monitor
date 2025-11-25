@@ -65,6 +65,9 @@ class MainWindow(QMainWindow):
         # self.update_timer = QTimer()
         # self.update_timer.timeout.connect(self.refresh_device_list)
         # self.update_timer.start(5000)
+        
+        # 如果已登录,自动刷新设备并启动监控
+        QTimer.singleShot(100, self.auto_refresh_and_start)
     
     def init_ui(self) -> None:
         """初始化UI"""
@@ -114,18 +117,8 @@ class MainWindow(QMainWindow):
         """创建工具栏"""
         toolbar = QHBoxLayout()
         
-        # 刷新按钮
-        self.refresh_btn = QPushButton("刷新设备")
-        self.refresh_btn.clicked.connect(self.on_refresh_devices)
-        toolbar.addWidget(self.refresh_btn)
-        
-        # 启动/停止监控按钮
-        self.monitor_btn = QPushButton("启动监控")
-        self.monitor_btn.clicked.connect(self.on_toggle_monitor)
-        toolbar.addWidget(self.monitor_btn)
-        
-        # 登录按钮
-        self.login_btn = QPushButton("登录米家")
+        # 登录按钮(仅用于重新登录)
+        self.login_btn = QPushButton("重新登录")
         self.login_btn.clicked.connect(self.on_login)
         toolbar.addWidget(self.login_btn)
         
@@ -376,30 +369,35 @@ class MainWindow(QMainWindow):
             f"报警: {stats['unresolved_alerts']}"
         )
     
-    def on_refresh_devices(self) -> None:
-        """刷新设备列表按钮点击"""
+    def auto_refresh_and_start(self) -> bool:
+        """自动刷新设备并启动监控"""
+        # 检查是否已登录
+        if not self.monitor.api or not self.monitor.api.available:
+            logger.info("未登录,跳过自动启动")
+            return False
+        
+        logger.info("检测到已登录,开始自动刷新设备...")
         self.status_bar.showMessage("正在从米家云端获取设备列表...")
         
+        # 刷新设备列表
         if self.monitor.fetch_devices():
             self.refresh_device_list()
-            self.status_bar.showMessage("设备列表刷新成功", 3000)
-            QMessageBox.information(self, "成功", "设备列表已更新")
+            self.status_bar.showMessage("设备列表刷新成功,正在启动监控...", 2000)
+            logger.info("设备列表刷新成功")
+            
+            # 启动监控
+            if self.monitor.start_monitor():
+                self.status_bar.showMessage("监控已启动", 3000)
+                logger.info("监控已自动启动")
+                return True
+            else:
+                self.status_bar.showMessage("启动监控失败", 3000)
+                logger.error("启动监控失败")
+                return False
         else:
             self.status_bar.showMessage("设备列表刷新失败", 3000)
-            QMessageBox.warning(self, "失败", "获取设备列表失败,请检查网络连接和登录状态")
-    
-    def on_toggle_monitor(self) -> None:
-        """启动/停止监控"""
-        if self.monitor.is_running:
-            self.monitor.stop_monitor()
-            self.monitor_btn.setText("启动监控")
-            self.status_bar.showMessage("监控已停止")
-        else:
-            if self.monitor.start_monitor():
-                self.monitor_btn.setText("停止监控")
-                self.status_bar.showMessage("监控已启动")
-            else:
-                QMessageBox.warning(self, "失败", "启动监控失败,请先刷新设备列表")
+            logger.error("获取设备列表失败")
+            return False
     
     def on_login(self) -> None:
         """登录米家账号"""
@@ -420,7 +418,7 @@ class MainWindow(QMainWindow):
             
             if self.monitor.login(use_qr=True):
                 QMessageBox.information(self, "成功", "登录成功!")
-                self.on_refresh_devices()
+                self.auto_refresh_and_start()
             else:
                 QMessageBox.warning(self, "失败", "登录失败")
         
