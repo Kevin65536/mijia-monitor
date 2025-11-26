@@ -2,6 +2,7 @@ from typing import Dict, Any, List, Optional
 import json
 import os
 from pathlib import Path
+from ..utils.path_utils import get_resource_path
 
 class DeviceProfile:
     """Base class for device profiles."""
@@ -229,19 +230,24 @@ class DeviceProfileFactory:
     
     @staticmethod
     def create_profile(model: str) -> DeviceProfile:
-        # Try to load from JSON first
-        try:
-            # Look in src/resources/profiles
-            # Assuming this file is in src/core, so we go up one level then to resources/profiles
-            current_dir = Path(__file__).parent
-            profile_path = current_dir.parent / 'resources' / 'profiles' / f"{model}.json"
-            
-            if profile_path.exists():
-                with open(profile_path, 'r', encoding='utf-8') as f:
-                    profile_data = json.load(f)
-                    return JsonDeviceProfile(model, profile_data)
-        except Exception as e:
-            print(f"Error loading profile for {model}: {e}")
+        search_paths = []
+
+        # 开发环境: 直接访问 src/resources/profiles
+        current_dir = Path(__file__).parent
+        search_paths.append(current_dir.parent / 'resources' / 'profiles' / f"{model}.json")
+
+        # 打包环境: 通过资源路径访问
+        search_paths.append(get_resource_path(f"resources/profiles/{model}.json"))
+        search_paths.append(get_resource_path(f"src/resources/profiles/{model}.json"))
+
+        for profile_path in search_paths:
+            try:
+                if profile_path and profile_path.exists():
+                    with open(profile_path, 'r', encoding='utf-8') as f:
+                        profile_data = json.load(f)
+                        return JsonDeviceProfile(model, profile_data)
+            except Exception as e:
+                print(f"Error loading profile for {model}: {e}")
 
         # Fallback to base profile
         return DeviceProfile(model)

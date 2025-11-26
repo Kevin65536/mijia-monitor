@@ -32,6 +32,8 @@ a = Analysis(
         ('config/config.yaml', 'config'),
         # 包含资源文件 (图标等)
         ('resources', 'resources'),
+        # 包含设备配置文件
+        ('src/resources/profiles', 'resources/profiles'),
     ],
     hiddenimports=[
         'mijiaAPI',
@@ -76,7 +78,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,  # 显示控制台窗口以便查看日志和使用命令行二维码登录
+    console=False,  # 隐藏控制台窗口, 发布版本使用GUI
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

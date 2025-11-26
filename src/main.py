@@ -3,10 +3,18 @@ import sys
 import os
 from pathlib import Path
 import signal
+import io
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon
+
+# 在窗口模式下运行时(PyInstaller console=False) stdout/stderr 可能为None
+# 某些依赖(如mijiaAPI)会在初始化时访问 isatty, 因此这里提供兜底
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, 'w')
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, 'w')
 
 # 修复打包后的导入问题
 if getattr(sys, 'frozen', False):
