@@ -91,7 +91,7 @@ notification:
 
 # 报警配置
 alerts:
-  enabled: true
+  enabled: false
   # 报警规则(示例)
   rules:
     - name: "温度过高"
