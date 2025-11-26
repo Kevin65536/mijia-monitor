@@ -133,12 +133,39 @@ class DeviceMonitor:
             return False
         
         try:
+            # 1. 获取家庭和房间信息
+            homes_list = self.api.get_homes_list()
+            did_to_room = {}
+            did_to_home = {}
+            
+            for home in homes_list:
+                home_id = home.get('id')
+                home_name = home.get('name')
+                
+                # 处理房间信息
+                if 'roomlist' in home:
+                    for room in home['roomlist']:
+                        room_name = room.get('name')
+                        if 'dids' in room:
+                            for did in room['dids']:
+                                did_to_room[did] = room_name
+                                did_to_home[did] = home_id
+            
+            # 2. 获取设备列表
             devices_list = self.api.get_devices_list()
             logger.info(f"获取到 {len(devices_list)} 个设备")
             
             with self.lock:
                 for device in devices_list:
                     did = device['did']
+                    
+                    # 补充房间和家庭信息
+                    if did in did_to_room:
+                        device['roomName'] = did_to_room[did]
+                    
+                    if did in did_to_home:
+                        device['homeId'] = did_to_home[did]
+                    
                     self.devices[did] = device
                     
                     # 保存到数据库
