@@ -13,6 +13,7 @@ from ..core.database import DatabaseManager
 from ..core.device_profiles import DeviceProfileFactory
 from ..utils.logger import get_logger
 from .charts import DeviceChartWidget
+from .cards import InfoCard, SwitchCard
 
 logger = get_logger(__name__)
 
@@ -44,9 +45,12 @@ class DeviceDetailDialog(QDialog):
         # 选项卡
         tab_widget = QTabWidget()
         
-        # 历史数据图表选项卡 - 仅当有图表配置时显示
-        chart_properties = self.profile.get_chart_properties()
-        if chart_properties:  # Only show charts tab if there are chart properties defined
+        # 历史数据图表选项卡
+        self.cards = {}
+        chart_props = self.profile.get_chart_properties()
+        card_props = self.profile.get_card_properties()
+        
+        if chart_props or card_props:
             self.charts_tab = self.create_charts_tab()
             tab_widget.addTab(self.charts_tab, "历史趋势")
         else:
@@ -138,6 +142,31 @@ class DeviceDetailDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
+        # 卡片区域
+        card_configs = self.profile.get_card_properties()
+        
+        if card_configs:
+            cards_layout = QHBoxLayout()
+            cards_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            cards_layout.setSpacing(15)
+            
+            for config in card_configs:
+                key = config['key']
+                card_type = config.get('type', 'info')
+                title = config.get('name', key)
+                
+                if card_type == 'switch':
+                    card = SwitchCard(title)
+                else:
+                    card = InfoCard(title)
+                
+                self.cards[key] = card
+                cards_layout.addWidget(card)
+            
+            cards_layout.addStretch()
+            layout.addLayout(cards_layout)
+            layout.addSpacing(10)
+        
         # 时间范围选择
         range_layout = QHBoxLayout()
         range_layout.addWidget(QLabel("时间范围:"))
@@ -169,9 +198,10 @@ class DeviceDetailDialog(QDialog):
             # 1. 加载当前属性
             properties = self.database.get_latest_device_properties(self.device['did'])
             self._update_properties_table(properties)
+            self._update_cards(properties)
             
-            # 2. 加载历史数据并更新图表 (仅当有图表选项卡时)
-            if self.charts_tab is not None:
+            # 2. 加载历史数据并更新图表
+            if self.charts_tab:
                 self._update_charts()
             
         except Exception as e:
@@ -277,6 +307,18 @@ class DeviceDetailDialog(QDialog):
                 x_range=(start_time.timestamp(), end_time.timestamp())
             )
     
+    def _update_cards(self, properties: Dict[str, Any]) -> None:
+        """更新卡片数据"""
+        if not properties:
+            return
+            
+        for key, card in self.cards.items():
+            if key in properties:
+                value = properties[key]['value']
+                # 使用profile格式化值
+                formatted_value = self.profile.format_value(key, value)
+                card.set_value(formatted_value)
+
     def _format_datetime(self, dt_str: str, is_utc: bool = True) -> str:
         """格式化日期时间"""
         if not dt_str or dt_str == '-':
