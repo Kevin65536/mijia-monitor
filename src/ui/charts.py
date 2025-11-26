@@ -57,15 +57,20 @@ class ModernPlotItem(pg.PlotWidget):
         
         self.color = QColor(color)
 
-    def set_data(self, timestamps, values):
+    def set_data(self, timestamps, values, x_range=None):
         self.clear()
+        
+        # 设置X轴范围
+        if x_range:
+            self.setXRange(x_range[0], x_range[1], padding=0)
+        
         if not timestamps or not values:
             return
 
         x = np.array(timestamps)
         y = np.array(values)
         
-        # 1. 绘制曲线 (带阴影填充)
+        # 1. 准备样式
         pen = pg.mkPen(color=self.color, width=2.5)
         
         # 创建渐变填充
@@ -80,34 +85,52 @@ class ModernPlotItem(pg.PlotWidget):
         brush = QBrush(grad)
         
         # 计算填充基准线 (稍微在最小值下面一点，或者0)
-        min_val = np.min(y)
-        max_val = np.max(y)
-        range_val = max_val - min_val if max_val != min_val else 1.0
-        fill_level = min_val - range_val * 0.05
+        valid_y = y[~np.isnan(y)]
+        if len(valid_y) > 0:
+            min_val = np.min(valid_y)
+            max_val = np.max(valid_y)
+            range_val = max_val - min_val if max_val != min_val else 1.0
+            fill_level = min_val - range_val * 0.05
+        else:
+            fill_level = 0
+            
+        # 2. 分段绘制以正确处理填充
+        # 寻找NaN的索引
+        nan_indices = np.where(np.isnan(y))[0]
         
-        self.plot(x, y, pen=pen, brush=brush, fillLevel=fill_level)
+        # 如果没有NaN，直接绘制
+        if len(nan_indices) == 0:
+            self.plot(x, y, pen=pen, brush=brush, fillLevel=fill_level)
+        else:
+            # 有NaN，分段绘制
+            start_idx = 0
+            for nan_idx in nan_indices:
+                if nan_idx > start_idx:
+                    # 绘制这一段
+                    seg_x = x[start_idx:nan_idx]
+                    seg_y = y[start_idx:nan_idx]
+                    self.plot(seg_x, seg_y, pen=pen, brush=brush, fillLevel=fill_level)
+                start_idx = nan_idx + 1
+            
+            # 绘制最后一段
+            if start_idx < len(x):
+                seg_x = x[start_idx:]
+                seg_y = y[start_idx:]
+                self.plot(seg_x, seg_y, pen=pen, brush=brush, fillLevel=fill_level)
         
-        # 2. 标记最大值和最小值
-        if len(y) > 1:
-            self._add_marker(x, y, np.argmax(y), 'max')
-            self._add_marker(x, y, np.argmin(y), 'min')
+        # 3. 标记最大值和最小值
+        if len(valid_y) > 1:
+            self._add_marker(x, y, np.nanargmax(y), 'max')
+            self._add_marker(x, y, np.nanargmin(y), 'min')
         
-        # 3. 标记最新值
-        self._add_marker(x, y, -1, 'current')
+        # 4. 标记最新值
+        if len(y) > 0 and not np.isnan(y[-1]):
+            self._add_marker(x, y, -1, 'current')
 
     def _add_marker(self, x, y, index, type_):
         """添加数值标记"""
         ts = x[index]
         val = y[index]
-        
-        # 散点
-        scatter = pg.ScatterPlotItem(
-            [ts], [val], 
-            size=10, 
-            brush='w', 
-            pen=pg.mkPen(self.color, width=2)
-        )
-        self.addItem(scatter)
         
         # 文本标签
         anchor = (0.5, 1.5) if type_ == 'max' else (0.5, -0.5)
@@ -154,11 +177,19 @@ class DeviceChartWidget(QWidget):
         # 配置PyQtGraph全局选项
         pg.setConfigOption('antialias', True)
         
-    def add_chart(self, name: str, timestamps: list, values: list, color: str):
+    def add_chart(self, name: str, timestamps: list, values: list, color: str, x_range: tuple = None):
         """
         添加一个属性的图表
         """
         if not timestamps or not values:
+            # 即使没有数据，如果指定了范围，也应该显示空图表
+            if x_range:
+                chart = ModernPlotItem(name, color)
+                chart.setFixedHeight(220)
+                chart.set_data([], [], x_range)
+                count = self.content_layout.count()
+                self.content_layout.insertWidget(count - 1, chart)
+                self.charts.append(chart)
             return
             
         # 确保数据是数值型
@@ -169,7 +200,7 @@ class DeviceChartWidget(QWidget):
             
         chart = ModernPlotItem(name, color)
         chart.setFixedHeight(220)
-        chart.set_data(timestamps, values)
+        chart.set_data(timestamps, values, x_range)
         
         # 插入到弹簧之前
         count = self.content_layout.count()

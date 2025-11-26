@@ -4,7 +4,7 @@ from typing import Dict, Any
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
-    QPushButton, QLabel, QHeaderView, QTabWidget, QWidget
+    QPushButton, QLabel, QHeaderView, QTabWidget, QWidget, QComboBox
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
@@ -129,6 +129,19 @@ class DeviceDetailDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
+        # 时间范围选择
+        range_layout = QHBoxLayout()
+        range_layout.addWidget(QLabel("时间范围:"))
+        
+        self.range_combo = QComboBox()
+        self.range_combo.addItems(["12小时", "24小时", "48小时"])
+        self.range_combo.setCurrentIndex(1) # 默认24小时
+        self.range_combo.currentIndexChanged.connect(self.load_data)
+        range_layout.addWidget(self.range_combo)
+        range_layout.addStretch()
+        
+        layout.addLayout(range_layout)
+        
         self.chart_widget = DeviceChartWidget()
         layout.addWidget(self.chart_widget)
         
@@ -181,28 +194,42 @@ class DeviceDetailDialog(QDialog):
         """更新图表数据"""
         self.chart_widget.clear()
         
+        # 获取时间范围
+        range_text = self.range_combo.currentText()
+        hours = 24
+        if "12" in range_text:
+            hours = 12
+        elif "48" in range_text:
+            hours = 48
+            
+        end_time = datetime.now()
+        start_time = end_time - timedelta(hours=hours)
+        
         # 获取需要绘图的属性配置
         chart_props = self.profile.get_chart_properties()
         
         has_data = False
         
         # 遍历可能的属性
+        monitor_interval = self.device.get('monitor_interval', 60)
+        gap_threshold = monitor_interval * 3 # 超过3倍监控间隔视为断点
+        
         for prop_name, config in chart_props.items():
-            # 获取最近24小时的数据
-            start_time = datetime.now() - timedelta(hours=24)
+            # 获取数据
             history = self.database.get_device_properties_history(
                 self.device['did'], 
                 prop_name, 
                 start_time=start_time,
-                limit=2000  # 增加限制以容纳24小时的数据(假设1分钟1个点)
+                limit=5000  # 增加限制以容纳更多数据
             )
+            
+            timestamps = []
+            values = []
             
             if history:
                 has_data = True
-                timestamps = []
-                values = []
-                
                 # 数据按时间正序排列
+                last_ts = None
                 for record in reversed(history):
                     try:
                         # 解析时间戳
@@ -210,18 +237,25 @@ class DeviceDetailDialog(QDialog):
                         ts = dt.timestamp()
                         val = float(record['property_value'])
                         
+                        # 检查是否需要插入断点
+                        if last_ts is not None and (ts - last_ts) > gap_threshold:
+                            timestamps.append(last_ts + 1) # 插入一个微小偏移的时间点
+                            values.append(float('nan'))    # 插入NaN值
+                        
                         timestamps.append(ts)
                         values.append(val)
+                        last_ts = ts
                     except (ValueError, TypeError):
                         continue
-                
-                if timestamps:
-                    self.chart_widget.add_chart(
-                        name=config['name'],
-                        timestamps=timestamps,
-                        values=values,
-                        color=config['color']
-                    )
+            
+            # 即使没有数据，也添加图表(显示空白坐标轴)
+            self.chart_widget.add_chart(
+                name=config['name'],
+                timestamps=timestamps,
+                values=values,
+                color=config['color'],
+                x_range=(start_time.timestamp(), end_time.timestamp())
+            )
     
     def _format_datetime(self, dt_str: str) -> str:
         """格式化日期时间"""
