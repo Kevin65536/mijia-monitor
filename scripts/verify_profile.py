@@ -46,7 +46,7 @@ def test_profile_loading():
     props = {
         'on': {'value': True, 'value_type': 'bool'},
         'electric-power': {'value': 123.45, 'value_type': 'float'},
-        'voltage': {'value': 220.1, 'value_type': 'uint32'},
+        'voltage': {'value': 220100, 'value_type': 'uint32'},  # 220.1 V
         'temperature': {'value': 35.5, 'value_type': 'float'}
     }
     
@@ -59,6 +59,11 @@ def test_profile_loading():
     power_prop = next((p for p in display_props if p['key'] == 'electric-power'), None)
     if not power_prop or 'W' not in power_prop['value']:
         print("FAILED: Incorrect formatting for electric-power")
+        return False
+
+    voltage_prop = next((p for p in display_props if p['key'] == 'voltage'), None)
+    if not voltage_prop or '220.1V' not in voltage_prop['value']:
+        print(f"FAILED: Incorrect formatting for voltage. Got {voltage_prop['value'] if voltage_prop else 'None'}")
         return False
         
     print("\nPASSED: All checks passed.")

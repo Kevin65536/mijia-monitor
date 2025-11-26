@@ -169,6 +169,14 @@ class JsonDeviceProfile(DeviceProfile):
         # Try to use unit from property definition if available
         prop_def = self.property_map.get(key)
         if prop_def:
+            # Apply scaling if defined
+            scale = prop_def.get('scale')
+            if scale is not None:
+                try:
+                    value = float(value) * float(scale)
+                except (ValueError, TypeError):
+                    pass
+
             unit = prop_def.get('unit', '')
             try:
                 if unit == 'celsius':

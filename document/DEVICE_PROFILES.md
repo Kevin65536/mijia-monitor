@@ -74,6 +74,20 @@
     * **details.display_order**: 详情页属性显示的顺序。
     * **details.friendly_names**: 属性名到中文名的映射。
 
+### 数值缩放 (Value Scaling)
+
+某些设备的属性值可能使用非标准单位（如电压为 mV，电流为 mA），但在 UI 中我们希望显示为标准单位（V, A）。
+可以在 `properties` 定义中添加 `scale` 字段：
+
+```json
+{
+  "piid": 3,
+  "name": "voltage",
+  "scale": 0.001,  // 将值乘以 0.001 (mV -> V)
+  "unit": "volt"
+}
+```
+
 ## 现有设备支持
 
 目前已支持以下设备：

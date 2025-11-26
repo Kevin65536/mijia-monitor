@@ -103,6 +103,8 @@
                         "read",
                         "notify"
                     ],
+                    "scale": 0.001,
+                    "unit": "volt",
                     "value-range": [
                         0,
                         500000,
@@ -119,6 +121,8 @@
                         "read",
                         "notify"
                     ],
+                    "scale": 0.001,
+                    "unit": "ampere",
                     "value-range": [
                         0,
                         100000,
