@@ -1,0 +1,142 @@
+{
+  "model": "cuco.plug.v3",
+  "name": "Mijia Smart Socket 3",
+  "services": [
+    {
+      "siid": 2,
+      "type": "urn:miot-spec-v2:service:switch:0000780C:cuco-v3:1",
+      "description": "Switch",
+      "properties": [
+        {
+          "piid": 1,
+          "type": "urn:miot-spec-v2:property:on:00000006:cuco-v3:1",
+          "name": "on",
+          "description": "Switch Status",
+          "format": "bool",
+          "access": ["read", "write", "notify"]
+        },
+        {
+          "piid": 2,
+          "type": "urn:miot-spec-v2:property:default-power-on-state:00000105:cuco-v3:1",
+          "name": "default-power-on-state",
+          "description": "Default Power On State",
+          "format": "uint8",
+          "access": ["read", "write", "notify"],
+          "value-range": [0, 2, 1]
+        },
+        {
+          "piid": 3,
+          "type": "urn:miot-spec-v2:property:fault:00000009:cuco-v3:1",
+          "name": "fault",
+          "description": "Device Fault",
+          "format": "uint8",
+          "access": ["read", "notify"],
+          "value-list": [
+            {"value": 0, "description": "No Faults"},
+            {"value": 1, "description": "Over Temperature"},
+            {"value": 2, "description": "Overload"}
+          ]
+        }
+      ]
+    },
+    {
+      "siid": 7,
+      "type": "urn:miot-spec-v2:service:physical-controls-locked:00007807:cuco-v3:1",
+      "description": "Physical Control Locked",
+      "properties": [
+        {
+          "piid": 1,
+          "type": "urn:miot-spec-v2:property:physical-controls-locked:0000001D:cuco-v3:1",
+          "name": "physical-controls-locked",
+          "description": "Physical Control Locked",
+          "format": "bool",
+          "access": ["read", "write", "notify"]
+        }
+      ]
+    },
+    {
+      "siid": 11,
+      "type": "urn:miot-spec-v2:service:power-consumption:0000780E:cuco-v3:1",
+      "description": "Power Consumption",
+      "properties": [
+        {
+          "piid": 1,
+          "type": "urn:miot-spec-v2:property:power-consumption:0000002F:cuco-v3:1",
+          "name": "power-consumption",
+          "description": "Power Consumption",
+          "format": "uint16",
+          "access": ["read", "notify"],
+          "value-range": [0, 65535, 1]
+        },
+        {
+          "piid": 2,
+          "type": "urn:miot-spec-v2:property:electric-power:00000066:cuco-v3:1",
+          "name": "electric-power",
+          "description": "Electric Power",
+          "format": "float",
+          "access": ["read", "notify"],
+          "unit": "watt",
+          "value-range": [0, 10000, 1]
+        }
+      ]
+    },
+    {
+      "siid": 12,
+      "type": "urn:cuco-spec:service:on-off-count:00007804:cuco-v3:1",
+      "description": "on-off-count",
+      "properties": [
+        {
+          "piid": 2,
+          "type": "urn:cuco-spec:property:temperature:00000002:cuco-v3:1",
+          "name": "temperature",
+          "description": "temperature",
+          "format": "uint8",
+          "access": ["read", "notify"],
+          "unit": "celsius",
+          "value-range": [0, 150, 1]
+        }
+      ]
+    },
+    {
+      "siid": 13,
+      "type": "urn:miot-spec-v2:service:indicator-light:00007803:cuco-v3:1",
+      "description": "Indicator Light",
+      "properties": [
+        {
+          "piid": 1,
+          "type": "urn:miot-spec-v2:property:on:00000006:cuco-v3:1",
+          "name": "indicator-light-on",
+          "description": "Indicator Light Switch Status",
+          "format": "bool",
+          "access": ["read", "write", "notify"]
+        }
+      ]
+    }
+  ],
+  "ui_config": {
+    "dashboard": {
+      "overview_properties": ["on", "electric-power"],
+      "chart_properties": {
+        "electric-power": {"color": "#FFE66D", "label": "功率 (W)"}
+      }
+    },
+    "details": {
+      "card_properties": [
+        {"key": "on", "type": "switch", "name": "开关"},
+        {"key": "electric-power", "type": "info", "name": "功率"},
+        {"key": "temperature", "type": "info", "name": "温度"}
+      ],
+      "display_order": ["on", "electric-power", "power-consumption", "temperature", "physical-controls-locked", "indicator-light-on", "fault"],
+      "friendly_names": {
+        "on": "开关",
+        "electric-power": "当前功率",
+        "power-consumption": "耗电量",
+        "temperature": "内部温度",
+        "physical-controls-locked": "童锁",
+        "indicator-light-on": "指示灯",
+        "fault": "故障状态",
+        "default-power-on-state": "默认上电状态"
+      }
+    }
+  }
+}
