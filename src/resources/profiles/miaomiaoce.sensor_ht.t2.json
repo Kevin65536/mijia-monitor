@@ -1,0 +1,102 @@
+{
+    "model": "miaomiaoce.sensor_ht.t2",
+    "name": "MiaoMiaoCe Temperature & Humidity Sensor 2",
+    "services": [
+        {
+            "siid": 2,
+            "type": "urn:miot-spec-v2:service:environment:0000780A:miaomiaoce-t2:1",
+            "description": "Environment",
+            "properties": [
+                {
+                    "piid": 1,
+                    "type": "urn:miot-spec-v2:property:temperature:00000020:miaomiaoce-t2:1",
+                    "name": "temperature",
+                    "description": "Temperature",
+                    "format": "float",
+                    "access": [
+                        "read",
+                        "notify"
+                    ],
+                    "unit": "celsius",
+                    "value-range": [
+                        -40,
+                        60,
+                        0.1
+                    ]
+                },
+                {
+                    "piid": 2,
+                    "type": "urn:miot-spec-v2:property:relative-humidity:0000000C:miaomiaoce-t2:1",
+                    "name": "relative-humidity",
+                    "description": "Relative Humidity",
+                    "format": "float",
+                    "access": [
+                        "read",
+                        "notify"
+                    ],
+                    "unit": "percentage",
+                    "value-range": [
+                        0,
+                        100,
+                        1
+                    ]
+                }
+            ]
+        },
+        {
+            "siid": 3,
+            "type": "urn:miot-spec-v2:service:battery:00007805:miaomiaoce-t2:1",
+            "description": "Battery",
+            "properties": [
+                {
+                    "piid": 1,
+                    "type": "urn:miot-spec-v2:property:battery-level:00000014:miaomiaoce-t2:1",
+                    "name": "battery-level",
+                    "description": "Battery Level",
+                    "format": "uint8",
+                    "access": [
+                        "read",
+                        "notify"
+                    ],
+                    "unit": "percentage",
+                    "value-range": [
+                        0,
+                        100,
+                        1
+                    ]
+                }
+            ]
+        }
+    ],
+    "ui_config": {
+        "dashboard": {
+            "overview_properties": [
+                "temperature",
+                "relative-humidity",
+                "battery-level"
+            ],
+            "chart_properties": {
+                "temperature": {
+                    "color": "#FF6B6B",
+                    "label": "温度 (°C)"
+                },
+                "relative-humidity": {
+                    "color": "#4ECDC4",
+                    "label": "湿度 (%)"
+                }
+            }
+        },
+        "details": {
+            "display_order": [
+                "temperature",
+                "relative-humidity",
+                "battery-level"
+            ],
+            "friendly_names": {
+                "temperature": "温度",
+                "relative-humidity": "相对湿度",
+                "battery-level": "电池电量"
+            }
+        }
+    }
+}

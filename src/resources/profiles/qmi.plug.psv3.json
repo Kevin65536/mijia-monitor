@@ -1,0 +1,164 @@
+{
+    "model": "qmi.plug.psv3",
+    "name": "Xiaomi Smart Power Strip 2",
+    "services": [
+        {
+            "siid": 2,
+            "type": "urn:miot-spec-v2:service:switch:0000780C:qmi-psv3:1:0000C816",
+            "description": "Switch",
+            "properties": [
+                {
+                    "piid": 1,
+                    "type": "urn:miot-spec-v2:property:on:00000006:qmi-psv3:1:0000C816",
+                    "name": "on",
+                    "description": "Switch Status",
+                    "format": "bool",
+                    "access": [
+                        "read",
+                        "write",
+                        "notify"
+                    ]
+                },
+                {
+                    "piid": 2,
+                    "type": "urn:miot-spec-v2:property:mode:00000008:qmi-psv3:1",
+                    "name": "mode",
+                    "description": "Mode",
+                    "format": "int8",
+                    "access": [
+                        "read",
+                        "write",
+                        "notify"
+                    ],
+                    "value-range": [
+                        0,
+                        1,
+                        1
+                    ]
+                },
+                {
+                    "piid": 3,
+                    "type": "urn:miot-spec-v2:property:temperature:00000020:qmi-psv3:1",
+                    "name": "temperature",
+                    "description": "Temperature",
+                    "format": "float",
+                    "access": [
+                        "read",
+                        "notify"
+                    ],
+                    "unit": "celsius",
+                    "value-range": [
+                        -30,
+                        125,
+                        0.1
+                    ]
+                }
+            ]
+        },
+        {
+            "siid": 3,
+            "type": "urn:miot-spec-v2:service:power-consumption:0000780E:qmi-psv3:1",
+            "description": "Power Consumption",
+            "properties": [
+                {
+                    "piid": 1,
+                    "type": "urn:miot-spec-v2:property:power-consumption:0000002F:qmi-psv3:1",
+                    "name": "power-consumption",
+                    "description": "Power Consumption",
+                    "format": "float",
+                    "access": [
+                        "read",
+                        "notify"
+                    ],
+                    "value-range": [
+                        0,
+                        20000000,
+                        0.01
+                    ]
+                },
+                {
+                    "piid": 2,
+                    "type": "urn:miot-spec-v2:property:electric-power:00000066:qmi-psv3:1",
+                    "name": "electric-power",
+                    "description": "Electric Power",
+                    "format": "float",
+                    "access": [
+                        "read",
+                        "notify"
+                    ],
+                    "unit": "watt",
+                    "value-range": [
+                        0,
+                        10000,
+                        0.0001
+                    ]
+                },
+                {
+                    "piid": 3,
+                    "type": "urn:miot-spec-v2:property:voltage:00000031:qmi-psv3:1",
+                    "name": "voltage",
+                    "description": "Voltage",
+                    "format": "uint32",
+                    "access": [
+                        "read",
+                        "notify"
+                    ],
+                    "value-range": [
+                        0,
+                        500000,
+                        1
+                    ]
+                },
+                {
+                    "piid": 4,
+                    "type": "urn:miot-spec-v2:property:electric-current:00000030:qmi-psv3:1",
+                    "name": "electric-current",
+                    "description": "Electric Current",
+                    "format": "uint32",
+                    "access": [
+                        "read",
+                        "notify"
+                    ],
+                    "value-range": [
+                        0,
+                        100000,
+                        1
+                    ]
+                }
+            ]
+        }
+    ],
+    "ui_config": {
+        "dashboard": {
+            "overview_properties": [
+                "on",
+                "electric-power"
+            ],
+            "chart_properties": {
+                "electric-power": {
+                    "color": "#FFE66D",
+                    "label": "功率 (W)"
+                }
+            }
+        },
+        "details": {
+            "display_order": [
+                "on",
+                "electric-power",
+                "electric-current",
+                "voltage",
+                "power-consumption",
+                "temperature"
+            ],
+            "friendly_names": {
+                "on": "开关",
+                "electric-power": "当前功率",
+                "electric-current": "电流",
+                "voltage": "电压",
+                "power-consumption": "耗电量",
+                "temperature": "内部温度",
+                "mode": "模式"
+            }
+        }
+    }
+}
