@@ -71,3 +71,6 @@ run_fix.bat
 
 # reference and dependency 
 mijia-api
+
+# zip build
+release/

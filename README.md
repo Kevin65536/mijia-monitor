@@ -27,11 +27,12 @@
 
 ## 🚀 快速开始
 
-### 方式一: 使用已打包的exe文件 (推荐)
+### 方式一: 使用发布压缩包 (推荐)
 
-1. 从 [Releases](https://github.com/Kevin65536/mijia-monitor/releases) 下载最新版本
-2. 直接运行 `MiMonitor.exe`
-3. 首次运行需要登录米家账号
+1. 从 [Releases](https://github.com/Kevin65536/mijia-monitor/releases) 下载最新的 `MiMonitor.zip`
+2. 将压缩包完整解压到任意目录,确保 `MiMonitor.exe` 与 `config/`、`data/`、`logs/` 同级
+3. 双击 `MiMonitor.exe` 或运行 `启动监控.bat`
+4. 首次运行会在 `config/config.yaml` 中保存本地配置,并需要通过二维码登录米家账号
 
 ### 方式二: 从源码运行 (开发者)
 
@@ -45,6 +46,7 @@ cd mijia-monitor
 #### 2. 安装依赖
 
 **Windows (PowerShell/CMD):**
+
 ```bash
 # 创建虚拟环境
 python -m venv venv
@@ -64,6 +66,20 @@ python -m src.main
 
 ## 📖 使用说明
 
+### 发布包结构
+
+GitHub Release 中提供的 `MiMonitor.zip` 解压后包含以下内容:
+
+| 路径 | 说明 |
+| --- | --- |
+| `MiMonitor.exe` | 主程序,需与其它目录同级放置 |
+| `config/` | 默认配置与认证文件存放位置 (`config.yaml`, `mijia_auth.json`) |
+| `data/` | SQLite 数据库存储目录,初始为空 |
+| `logs/` | 日志输出目录,用于排查问题 |
+| `启动监控.bat` | 辅助脚本,在当前目录启动应用 |
+
+发布压缩包已包含运行所需的全部文件,用户无需在 `AppData` 等位置写入数据,也不需要额外创建目录。更新程序时,只需备份当前目录(尤其是 `config/` 与 `data/`),替换 `MiMonitor.exe` 即可。
+
 ### 首次使用
 
 1. **登录米家账号**
@@ -82,12 +98,14 @@ python -m src.main
 ### 界面功能
 
 #### 设备列表
+
 - 显示所有米家设备
 - 实时状态显示(在线/离线)
 - 点击"查看详情"查看设备信息
 - 可自定义监控间隔
 
 #### 统计信息
+
 - 设备总数和在线数量
 - 数据库记录统计
 - 存储空间占用
