@@ -72,22 +72,27 @@ class DeviceDetailDialog(QDialog):
         """创建基本信息区域"""
         layout = QHBoxLayout()
         
+        self.info_label = QLabel()
+        self.info_label.setTextFormat(Qt.TextFormat.RichText)
+        self._update_basic_info_ui()
+        
+        layout.addWidget(self.info_label)
+        layout.addStretch()
+        
+        return layout
+    
+    def _update_basic_info_ui(self) -> None:
+        """更新基本信息UI"""
         info_text = f"""
         <h3>{self.device['name']}</h3>
         <b>设备ID:</b> {self.device['did']}<br>
         <b>设备型号:</b> {self.device['model']}<br>
         <b>所在房间:</b> {self.device['room_name'] or '未分配'}<br>
         <b>在线状态:</b> {'<span style="color: green;">在线</span>' if self.device['online'] else '<span style="color: red;">离线</span>'}<br>
-        <b>最后更新:</b> {self._format_datetime(self.device['last_seen'])}<br>
+        <b>最后更新:</b> {self._format_datetime(self.device['last_seen'], is_utc=False)}<br>
         <b>监控间隔:</b> {self.device.get('monitor_interval', 60)} 秒
         """
-        
-        info_label = QLabel(info_text)
-        info_label.setTextFormat(Qt.TextFormat.RichText)
-        layout.addWidget(info_label)
-        layout.addStretch()
-        
-        return layout
+        self.info_label.setText(info_text)
     
     def create_properties_tab(self) -> QWidget:
         """创建属性选项卡"""
@@ -150,6 +155,13 @@ class DeviceDetailDialog(QDialog):
     def load_data(self) -> None:
         """加载数据"""
         try:
+            # 刷新设备基本信息
+            latest_device = self.database.get_device(self.device['did'])
+            if latest_device:
+                self.device = latest_device
+                if hasattr(self, 'info_label'):
+                    self._update_basic_info_ui()
+
             # 1. 加载当前属性
             properties = self.database.get_latest_device_properties(self.device['did'])
             self._update_properties_table(properties)
@@ -181,7 +193,7 @@ class DeviceDetailDialog(QDialog):
             self.properties_table.setItem(row, 2, QTableWidgetItem(prop_data['type']))
             
             # 更新时间
-            timestamp = self._format_datetime(prop_data['timestamp'])
+            timestamp = self._format_datetime(prop_data['timestamp'], is_utc=True)
             self.properties_table.setItem(row, 3, QTableWidgetItem(timestamp))
         
         # 如果没有属性,显示提示
@@ -234,6 +246,9 @@ class DeviceDetailDialog(QDialog):
                     try:
                         # 解析时间戳
                         dt = datetime.fromisoformat(record['timestamp'].replace('Z', '+00:00'))
+                        # 数据库中的属性历史记录使用的是UTC时间
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=timezone.utc)
                         ts = dt.timestamp()
                         val = float(record['property_value'])
                         
@@ -257,19 +272,23 @@ class DeviceDetailDialog(QDialog):
                 x_range=(start_time.timestamp(), end_time.timestamp())
             )
     
-    def _format_datetime(self, dt_str: str) -> str:
+    def _format_datetime(self, dt_str: str, is_utc: bool = True) -> str:
         """格式化日期时间"""
         if not dt_str or dt_str == '-':
             return '-'
         
         try:
             dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
-            # 如果是naive时间(没有时区信息)，假定为UTC
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-                
-            # 转换为本地时间
-            dt_local = dt.astimezone()
-            return dt_local.strftime('%Y-%m-%d %H:%M:%S')
+            
+            if is_utc:
+                # 如果是naive时间(没有时区信息)，假定为UTC
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                # 转换为本地时间
+                dt_local = dt.astimezone()
+                return dt_local.strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                # 假定为本地时间，直接格式化
+                return dt.strftime('%Y-%m-%d %H:%M:%S')
         except:
             return str(dt_str)
