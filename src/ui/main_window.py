@@ -114,8 +114,8 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(self.device_tab, "设备列表")
         
         # 报警选项卡
-        self.alert_tab = self.create_alert_tab()
-        self.tab_widget.addTab(self.alert_tab, "报警记录")
+        # self.alert_tab = self.create_alert_tab()
+        # self.tab_widget.addTab(self.alert_tab, "报警记录")
         
         # 统计选项卡
         self.stats_tab = self.create_stats_tab()
