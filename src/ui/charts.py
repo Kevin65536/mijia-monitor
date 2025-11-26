@@ -1,9 +1,10 @@
 import pyqtgraph as pg
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QFrame
 from PySide6.QtGui import QColor, QLinearGradient, QBrush, QPen
 from PySide6.QtCore import Qt
 from datetime import datetime
 import numpy as np
+import math
 
 class DateAxisItem(pg.AxisItem):
     """自定义时间轴，显示可读的时间格式"""
@@ -27,14 +28,14 @@ class ModernPlotItem(pg.PlotWidget):
         super().__init__(parent)
         
         # 基础配置
-        self.setBackground('w')
+        self.setBackground(None) # 透明背景
         self.showGrid(x=True, y=True, alpha=0.15)
         self.setMouseEnabled(x=False, y=False)
         self.hideButtons()
         
-        # 坐标轴样式
-        axis_pen = pg.mkPen(color='#EEEEEE', width=1)
-        text_pen = pg.mkPen(color='#999999')
+        # 坐标轴样式 - 使用浅灰色以适应深色背景
+        axis_pen = pg.mkPen(color='#CCCCCC', width=1)
+        text_pen = pg.mkPen(color='#CCCCCC')
         
         # 左轴
         left_axis = self.getAxis('left')
@@ -52,8 +53,8 @@ class ModernPlotItem(pg.PlotWidget):
         # 替换为时间轴
         self.setAxisItems({'bottom': DateAxisItem(orientation='bottom')})
         
-        # 标题
-        self.setTitle(title, color='#333333', size='11pt', bold=True)
+        # 标题 - 使用浅灰色
+        self.setTitle(title, color='#DDDDDD', size='11pt', bold=True)
         
         self.color = QColor(color)
 
@@ -151,26 +152,10 @@ class DeviceChartWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # 主布局
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # 滚动区域
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setFrameShape(QFrame.NoFrame)
-        self.scroll_area.setStyleSheet("QScrollArea { background: transparent; }")
-        
-        # 内容容器
-        self.content_widget = QWidget()
-        self.content_widget.setStyleSheet("background: white;")
-        self.content_layout = QVBoxLayout(self.content_widget)
-        self.content_layout.setContentsMargins(10, 10, 10, 10)
-        self.content_layout.setSpacing(20)
-        self.content_layout.addStretch() # 底部弹簧
-        
-        self.scroll_area.setWidget(self.content_widget)
-        main_layout.addWidget(self.scroll_area)
+        # 主布局 - 使用网格布局
+        self.layout = QGridLayout(self)
+        self.layout.setContentsMargins(10, 10, 10, 10)
+        self.layout.setSpacing(20)
         
         self.charts = []
         
@@ -181,35 +166,59 @@ class DeviceChartWidget(QWidget):
         """
         添加一个属性的图表
         """
+        chart = ModernPlotItem(name, color)
+        
         if not timestamps or not values:
             # 即使没有数据，如果指定了范围，也应该显示空图表
             if x_range:
-                chart = ModernPlotItem(name, color)
-                chart.setFixedHeight(220)
                 chart.set_data([], [], x_range)
-                count = self.content_layout.count()
-                self.content_layout.insertWidget(count - 1, chart)
-                self.charts.append(chart)
-            return
-            
-        # 确保数据是数值型
-        try:
-            values = [float(v) for v in values]
-        except (ValueError, TypeError):
-            return
-            
-        chart = ModernPlotItem(name, color)
-        chart.setFixedHeight(220)
-        chart.set_data(timestamps, values, x_range)
+            else:
+                # 没有数据也没有范围，不添加
+                chart.deleteLater()
+                return
+        else:
+            # 确保数据是数值型
+            try:
+                values = [float(v) for v in values]
+                chart.set_data(timestamps, values, x_range)
+            except (ValueError, TypeError):
+                chart.deleteLater()
+                return
         
-        # 插入到弹簧之前
-        count = self.content_layout.count()
-        self.content_layout.insertWidget(count - 1, chart)
         self.charts.append(chart)
+        self._update_layout()
+            
+    def _update_layout(self):
+        """更新网格布局"""
+        count = len(self.charts)
+        if count == 0:
+            return
+            
+        # 策略：
+        # 1. <= 2个图：单列纵向排列
+        # 2. > 2个图：双列排列
+        # 3. 双列模式下，如果是奇数个，最后一个图跨两列
+        
+        is_single_col = count <= 2
+        
+        for i, chart in enumerate(self.charts):
+            if is_single_col:
+                # 单列模式，占满整行(跨2列以保持一致性)
+                self.layout.addWidget(chart, i, 0, 1, 2)
+            else:
+                # 双列模式
+                row = i // 2
+                col = i % 2
+                
+                # 如果是最后一个且是奇数个，跨两列
+                if i == count - 1 and count % 2 != 0:
+                    self.layout.addWidget(chart, row, 0, 1, 2)
+                else:
+                    self.layout.addWidget(chart, row, col, 1, 1)
             
     def clear(self):
         """清除所有图表"""
         for chart in self.charts:
-            self.content_layout.removeWidget(chart)
+            self.layout.removeWidget(chart)
             chart.deleteLater()
         self.charts = []
