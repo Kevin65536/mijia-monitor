@@ -1,5 +1,5 @@
 """设备详情对话框"""
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 
 from PySide6.QtWidgets import (
@@ -44,13 +44,13 @@ class DeviceDetailDialog(QDialog):
         # 选项卡
         tab_widget = QTabWidget()
         
-        # 当前属性选项卡
-        self.properties_tab = self.create_properties_tab()
-        tab_widget.addTab(self.properties_tab, "当前属性")
-        
         # 历史数据图表选项卡
         self.charts_tab = self.create_charts_tab()
         tab_widget.addTab(self.charts_tab, "历史趋势")
+        
+        # 当前属性选项卡
+        self.properties_tab = self.create_properties_tab()
+        tab_widget.addTab(self.properties_tab, "当前属性")
         
         layout.addWidget(tab_widget)
         
@@ -189,10 +189,12 @@ class DeviceDetailDialog(QDialog):
         # 遍历可能的属性
         for prop_name, config in chart_props.items():
             # 获取最近24小时的数据
+            start_time = datetime.now() - timedelta(hours=24)
             history = self.database.get_device_properties_history(
                 self.device['did'], 
                 prop_name, 
-                limit=100  # 限制点数，避免太卡
+                start_time=start_time,
+                limit=2000  # 增加限制以容纳24小时的数据(假设1分钟1个点)
             )
             
             if history:
@@ -214,7 +216,7 @@ class DeviceDetailDialog(QDialog):
                         continue
                 
                 if timestamps:
-                    self.chart_widget.plot_data(
+                    self.chart_widget.add_chart(
                         name=config['name'],
                         timestamps=timestamps,
                         values=values,
