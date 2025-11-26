@@ -1,0 +1,78 @@
+{
+  "model": "xiaomi.tv.esh1",
+  "name": "Xiaomi TV ES Series",
+  "services": [
+    {
+      "siid": 2,
+      "type": "urn:miot-spec-v2:service:television:00007831:xiaomi-esh1:1",
+      "description": "Television",
+      "properties": [
+        {
+          "piid": 1,
+          "type": "urn:miot-spec-v2:property:input-control:00000043:xiaomi-esh1:1",
+          "name": "input-control",
+          "description": "Input Control",
+          "format": "uint8",
+          "access": ["read", "write", "notify"],
+          "value-list": [
+            {"value": 1, "description": "ATV"},
+            {"value": 2, "description": "DTV"},
+            {"value": 3, "description": "AV"},
+            {"value": 4, "description": "HDMI1"},
+            {"value": 5, "description": "HDMI2"},
+            {"value": 6, "description": "HDMI3"}
+          ]
+        },
+        {
+          "piid": 2,
+          "type": "urn:miot-spec-v2:property:sleep-mode:00000044:xiaomi-esh1:1",
+          "name": "sleep-mode",
+          "description": "Sleep Mode",
+          "format": "bool",
+          "access": ["read", "write", "notify"]
+        }
+      ]
+    },
+    {
+      "siid": 4,
+      "type": "urn:miot-spec-v2:service:speaker:0000781C:xiaomi-esh1:1",
+      "description": "Speaker",
+      "properties": [
+        {
+          "piid": 1,
+          "type": "urn:miot-spec-v2:property:volume:00000013:xiaomi-esh1:1",
+          "name": "volume",
+          "description": "Volume",
+          "format": "uint8",
+          "access": ["read", "write", "notify"],
+          "value-range": [0, 100, 1]
+        },
+        {
+          "piid": 2,
+          "type": "urn:miot-spec-v2:property:mute:00000040:xiaomi-esh1:1",
+          "name": "mute",
+          "description": "Mute",
+          "format": "bool",
+          "access": ["read", "write", "notify"]
+        }
+      ]
+    }
+  ],
+  "ui_config": {
+    "dashboard": {
+      "overview_properties": ["volume", "mute"],
+      "chart_properties": {
+        "volume": {"color": "#4CAF50", "label": "音量"}
+      }
+    },
+    "details": {
+      "display_order": ["volume", "mute", "input-control", "sleep-mode"],
+      "friendly_names": {
+        "volume": "音量",
+        "mute": "静音",
+        "input-control": "输入源",
+        "sleep-mode": "睡眠模式"
+      }
+    }
+  }
+}

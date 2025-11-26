@@ -1,0 +1,108 @@
+{
+  "model": "dmaker.fan.p44",
+  "name": "Mijia Smart Evaporative Cooling Fan",
+  "services": [
+    {
+      "siid": 2,
+      "type": "urn:miot-spec-v2:service:fan:00007808:dmaker-p44:1",
+      "description": "Fan",
+      "properties": [
+        {
+          "piid": 1,
+          "type": "urn:miot-spec-v2:property:on:00000006:dmaker-p44:1",
+          "name": "on",
+          "description": "Switch Status",
+          "format": "bool",
+          "access": ["read", "write", "notify"]
+        },
+        {
+          "piid": 2,
+          "type": "urn:miot-spec-v2:property:fan-level:00000016:dmaker-p44:1",
+          "name": "fan-level",
+          "description": "Fan Level",
+          "format": "uint8",
+          "access": ["read", "write", "notify"],
+          "value-range": [1, 4, 1]
+        },
+        {
+          "piid": 3,
+          "type": "urn:miot-spec-v2:property:mode:00000008:dmaker-p44:1",
+          "name": "mode",
+          "description": "Mode",
+          "format": "uint8",
+          "access": ["read", "write", "notify"],
+          "value-list": [
+            {"value": 0, "description": "Straight Wind"},
+            {"value": 1, "description": "Natural Wind"},
+            {"value": 2, "description": "Sleep Wind"},
+            {"value": 3, "description": "Cold Air"}
+          ]
+        },
+        {
+          "piid": 4,
+          "type": "urn:miot-spec-v2:property:horizontal-swing:00000017:dmaker-p44:1",
+          "name": "horizontal-swing",
+          "description": "Horizontal Swing",
+          "format": "bool",
+          "access": ["read", "write", "notify"]
+        },
+        {
+          "piid": 6,
+          "type": "urn:miot-spec-v2:property:air-cooler:00000108:dmaker-p44:1",
+          "name": "air-cooler",
+          "description": "Air Cooler",
+          "format": "bool",
+          "access": ["read", "write", "notify"]
+        },
+        {
+          "piid": 7,
+          "type": "urn:miot-spec-v2:property:fault:00000009:dmaker-p44:1",
+          "name": "fault",
+          "description": "Device Fault",
+          "format": "uint8",
+          "access": ["read", "notify"],
+          "value-list": [
+            {"value": 0, "description": "No Faults"},
+            {"value": 1, "description": "Water Shortage"},
+            {"value": 2, "description": "Not Connected"}
+          ]
+        }
+      ]
+    },
+    {
+      "siid": 7,
+      "type": "urn:miot-spec-v2:service:physical-controls-locked:00007807:dmaker-p44:1",
+      "description": "Physical Control Locked",
+      "properties": [
+        {
+          "piid": 1,
+          "type": "urn:miot-spec-v2:property:physical-controls-locked:0000001D:dmaker-p44:1",
+          "name": "physical-controls-locked",
+          "description": "Physical Control Locked",
+          "format": "bool",
+          "access": ["read", "write", "notify"]
+        }
+      ]
+    }
+  ],
+  "ui_config": {
+    "dashboard": {
+      "overview_properties": ["on", "mode", "fan-level"],
+      "chart_properties": {
+        "fan-level": {"color": "#00BCD4", "label": "风速档位"}
+      }
+    },
+    "details": {
+      "display_order": ["on", "mode", "fan-level", "horizontal-swing", "air-cooler", "physical-controls-locked", "fault"],
+      "friendly_names": {
+        "on": "开关",
+        "mode": "模式",
+        "fan-level": "风速",
+        "horizontal-swing": "左右摆风",
+        "air-cooler": "冷风模式",
+        "physical-controls-locked": "童锁",
+        "fault": "故障"
+      }
+    }
+  }
+}

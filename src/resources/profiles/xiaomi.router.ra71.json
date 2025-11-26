@@ -1,0 +1,51 @@
+{
+  "model": "xiaomi.router.ra71",
+  "name": "Redmi Router",
+  "services": [
+    {
+      "siid": 2,
+      "type": "urn:miot-spec-v2:service:router:0000783C:xiaomi-ra71:1",
+      "description": "Router",
+      "properties": [
+        {
+          "piid": 1,
+          "type": "urn:miot-spec-v2:property:connected-device-count:00000068:xiaomi-ra71:1",
+          "name": "connected-device-count",
+          "description": "Connected Device Count",
+          "format": "uint32",
+          "access": ["read", "notify"]
+        }
+      ]
+    },
+    {
+      "siid": 3,
+      "type": "urn:miot-spec-v2:service:indicator-light:00007803:xiaomi-ra71:1",
+      "description": "Indicator Light",
+      "properties": [
+        {
+          "piid": 1,
+          "type": "urn:miot-spec-v2:property:on:00000006:xiaomi-ra71:1",
+          "name": "indicator-light-on",
+          "description": "Indicator Light Switch Status",
+          "format": "bool",
+          "access": ["read", "write", "notify"]
+        }
+      ]
+    }
+  ],
+  "ui_config": {
+    "dashboard": {
+      "overview_properties": ["connected-device-count"],
+      "chart_properties": {
+        "connected-device-count": {"color": "#2196F3", "label": "连接设备数"}
+      }
+    },
+    "details": {
+      "display_order": ["connected-device-count", "indicator-light-on"],
+      "friendly_names": {
+        "connected-device-count": "连接设备数",
+        "indicator-light-on": "指示灯"
+      }
+    }
+  }
+}

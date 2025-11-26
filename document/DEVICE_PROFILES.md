@@ -17,6 +17,8 @@
 
 访问 [Xiaomi Miot Spec](https://home.miot-spec.com/)，搜索设备型号（如 `qmi.plug.psv3`），获取其服务和属性定义。
 
+例如：https://home.miot-spec.com/spec/qmi.plug.psv3
+
 ### 步骤 2: 创建 JSON 配置文件
 
 在 `src/resources/profiles/` 目录下创建一个名为 `qmi.plug.psv3.json` 的文件。
