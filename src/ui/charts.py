@@ -58,7 +58,7 @@ class ModernPlotItem(pg.PlotWidget):
         
         self.color = QColor(color)
 
-    def set_data(self, timestamps, values, x_range=None):
+    def set_data(self, timestamps, values, x_range=None, step_mode=False):
         self.clear()
         
         # 设置X轴范围
@@ -70,6 +70,28 @@ class ModernPlotItem(pg.PlotWidget):
 
         x = np.array(timestamps)
         y = np.array(values)
+        
+        # 如果是阶梯模式，预处理数据
+        if step_mode and len(x) > 1:
+            # 创建阶梯数据: (t0, v0), (t1, v0), (t1, v1), (t2, v1)...
+            # 我们需要重复x和y的值来制造直角转折
+            
+            # 新的x: t0, t1, t1, t2, t2, t3...
+            # 新的y: v0, v0, v1, v1, v2, v2...
+            
+            new_x = []
+            new_y = []
+            
+            for i in range(len(x) - 1):
+                new_x.extend([x[i], x[i+1]])
+                new_y.extend([y[i], y[i]])
+                
+            # 添加最后一个点
+            new_x.append(x[-1])
+            new_y.append(y[-1])
+            
+            x = np.array(new_x)
+            y = np.array(new_y)
         
         # 1. 准备样式
         pen = pg.mkPen(color=self.color, width=2.5)
@@ -120,7 +142,8 @@ class ModernPlotItem(pg.PlotWidget):
                 self.plot(seg_x, seg_y, pen=pen, brush=brush, fillLevel=fill_level)
         
         # 3. 标记最大值和最小值
-        if len(valid_y) > 1:
+        # 对于阶梯图，标记可能太多，仅标记最新值
+        if not step_mode and len(valid_y) > 1:
             self._add_marker(x, y, np.nanargmax(y), 'max')
             self._add_marker(x, y, np.nanargmin(y), 'min')
         
@@ -162,7 +185,7 @@ class DeviceChartWidget(QWidget):
         # 配置PyQtGraph全局选项
         pg.setConfigOption('antialias', True)
         
-    def add_chart(self, name: str, timestamps: list, values: list, color: str, x_range: tuple = None):
+    def add_chart(self, name: str, timestamps: list, values: list, color: str, x_range: tuple = None, style: str = 'line'):
         """
         添加一个属性的图表
         """
@@ -180,7 +203,7 @@ class DeviceChartWidget(QWidget):
             # 确保数据是数值型
             try:
                 values = [float(v) for v in values]
-                chart.set_data(timestamps, values, x_range)
+                chart.set_data(timestamps, values, x_range, step_mode=(style == 'step'))
             except (ValueError, TypeError):
                 chart.deleteLater()
                 return

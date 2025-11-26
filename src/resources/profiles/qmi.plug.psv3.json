@@ -142,10 +142,26 @@
                 "electric-power": {
                     "color": "#FFE66D",
                     "label": "功率 (W)"
+                },
+                "power-consumption": {
+                    "color": "#FF6B6B",
+                    "label": "耗电量 (kWh)"
                 }
             }
         },
         "details": {
+            "card_properties": [
+                {
+                    "key": "on",
+                    "type": "switch",
+                    "label": "开关"
+                },
+                {
+                    "key": "electric-power",
+                    "type": "info",
+                    "label": "当前功率"
+                }
+            ],
             "display_order": [
                 "on",
                 "electric-power",

@@ -44,9 +44,13 @@ class DeviceDetailDialog(QDialog):
         # 选项卡
         tab_widget = QTabWidget()
         
-        # 历史数据图表选项卡
-        self.charts_tab = self.create_charts_tab()
-        tab_widget.addTab(self.charts_tab, "历史趋势")
+        # 历史数据图表选项卡 - 仅当有图表配置时显示
+        chart_properties = self.profile.get_chart_properties()
+        if chart_properties:  # Only show charts tab if there are chart properties defined
+            self.charts_tab = self.create_charts_tab()
+            tab_widget.addTab(self.charts_tab, "历史趋势")
+        else:
+            self.charts_tab = None
         
         # 当前属性选项卡
         self.properties_tab = self.create_properties_tab()
@@ -166,8 +170,9 @@ class DeviceDetailDialog(QDialog):
             properties = self.database.get_latest_device_properties(self.device['did'])
             self._update_properties_table(properties)
             
-            # 2. 加载历史数据并更新图表
-            self._update_charts()
+            # 2. 加载历史数据并更新图表 (仅当有图表选项卡时)
+            if self.charts_tab is not None:
+                self._update_charts()
             
         except Exception as e:
             logger.error(f"加载设备数据失败: {e}")

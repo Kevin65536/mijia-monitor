@@ -66,6 +66,30 @@ def test_profile_loading():
         print(f"FAILED: Incorrect formatting for voltage. Got {voltage_prop['value'] if voltage_prop else 'None'}")
         return False
         
+    # Verify chart properties
+    chart_props = profile2.get_chart_properties()
+    print("\nChart properties:")
+    for key, config in chart_props.items():
+        print(f"  {key}: {config}")
+        
+    if 'on' in chart_props:
+        print("FAILED: 'on' should NOT be in chart properties")
+        return False
+        
+    # Verify card properties
+    card_props = profile2.get_card_properties()
+    print("\nCard properties:")
+    for card in card_props:
+        print(f"  {card}")
+        
+    if not any(c['key'] == 'on' and c['type'] == 'switch' for c in card_props):
+        print("FAILED: 'on' switch card missing")
+        return False
+
+    if not any(c['key'] == 'electric-power' and c['type'] == 'info' for c in card_props):
+        print("FAILED: 'electric-power' info card missing")
+        return False
+        
     print("\nPASSED: All checks passed.")
     return True
 

@@ -56,14 +56,13 @@ class DeviceProfile:
         Get configuration for properties to be charted.
         Returns a dict where key is property name and value is config dict (color, name).
         """
-        # Default implementation: return common chartable properties
-        return {
-            'temperature': {'color': '#FF6B6B', 'name': '温度 (°C)'},
-            'relative-humidity': {'color': '#4ECDC4', 'name': '湿度 (%)'},
-            'power': {'color': '#FFE66D', 'name': '功率 (W)'},
-            'electric-power': {'color': '#FFE66D', 'name': '功率 (W)'},
-            'battery-level': {'color': '#95E1D3', 'name': '电量 (%)'}
-        }
+        # Default: no chart properties (device needs JSON profile to define charts)
+        return {}
+
+    def get_card_properties(self) -> List[Dict[str, Any]]:
+        """Get properties to display as cards/controls."""
+        # Default: no card properties
+        return []
 
     def format_value(self, key: str, value: Any) -> str:
         """Format a property value for display."""
@@ -156,14 +155,41 @@ class JsonDeviceProfile(DeviceProfile):
         return display_props
 
     def get_chart_properties(self) -> Dict[str, Dict[str, Any]]:
+        """Get configuration for properties to be charted."""
         chart_config = self.ui_config.get('dashboard', {}).get('chart_properties', {})
         result = {}
         for key, config in chart_config.items():
             result[key] = {
                 'color': config.get('color', '#888888'),
-                'name': config.get('label', key)
+                'name': config.get('label', key),
+                'style': config.get('style', 'line')
             }
         return result
+
+    def get_card_properties(self) -> List[Dict[str, Any]]:
+        """Get properties to display as cards/controls."""
+        card_config = self.ui_config.get('details', {}).get('card_properties', [])
+        # If it's a list of strings, convert to default config
+        result = []
+        for item in card_config:
+            if isinstance(item, str):
+                result.append({
+                    'key': item,
+                    'name': self.get_friendly_names().get(item, item),
+                    'type': 'info' # default type
+                })
+            elif isinstance(item, dict):
+                key = item.get('key')
+                if key:
+                    result.append({
+                        'key': key,
+                        'name': item.get('label', self.get_friendly_names().get(key, key)),
+                        'type': item.get('type', 'info'),
+                        'icon': item.get('icon'),
+                        'color': item.get('color')
+                    })
+        return result
+
 
     def format_value(self, key: str, value: Any) -> str:
         # Try to use unit from property definition if available
