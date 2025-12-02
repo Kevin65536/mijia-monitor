@@ -21,6 +21,7 @@ from ..utils.logger import get_logger
 from ..utils.path_utils import get_resource_path
 from .device_detail_dialog import DeviceDetailDialog
 from .qr_login_dialog import QRLoginDialog
+from .cards import DeviceCardGrid
 
 logger = get_logger(__name__)
 
@@ -151,34 +152,40 @@ class MainWindow(QMainWindow):
         return toolbar
     
     def create_device_tab(self) -> QWidget:
-        """创建设备列表选项卡"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
+        """创建设备列表选项卡 - 卡片网格布局"""
+        from PySide6.QtWidgets import QScrollArea
         
-        # 设备表格
-        self.device_table = QTableWidget()
-        self.device_table.setColumnCount(8)
-        self.device_table.setHorizontalHeaderLabels([
-            "设备名称", "型号", "房间", "状态", "实时数据", "最后更新", "监控间隔", "操作"
-        ])
+        # 创建滚动区域
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                background: rgba(0, 0, 0, 0.1);
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+        """)
         
-        # 设置表格属性
-        header = self.device_table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        # 设备卡片网格
+        self.device_card_grid = DeviceCardGrid()
+        self.device_card_grid.card_clicked.connect(self.show_device_detail)
         
-        self.device_table.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.device_table.setEditTriggers(
-            QTableWidget.EditTrigger.NoEditTriggers
-        )
+        scroll_area.setWidget(self.device_card_grid)
         
-        layout.addWidget(self.device_table)
-        
-        return widget
+        return scroll_area
     
     def create_alert_tab(self) -> QWidget:
         """创建报警选项卡"""
@@ -262,60 +269,45 @@ class MainWindow(QMainWindow):
             self._is_refreshing = True
             devices = self.database.get_all_devices()
             
-            self.device_table.setRowCount(len(devices))
+            # 清空现有卡片
+            self.device_card_grid.clear()
             
-            # 重建 did 到行号的映射
+            # 重建 did 到行号的映射（用于兼容性）
             self._did_to_row.clear()
             
-            for row, device in enumerate(devices):
-                # 缓存 did 到行号的映射
-                self._did_to_row[device['did']] = row
+            for idx, device in enumerate(devices):
+                # 缓存 did 到索引的映射
+                self._did_to_row[device['did']] = idx
                 
-                # 设备名称
-                self.device_table.setItem(row, 0, QTableWidgetItem(device['name'] or '未知'))
+                # 添加设备卡片
+                card = self.device_card_grid.add_device(device)
                 
-                # 型号
-                self.device_table.setItem(row, 1, QTableWidgetItem(device['model'] or '-'))
-                
-                # 房间
-                self.device_table.setItem(row, 2, QTableWidgetItem(device['room_name'] or '-'))
-                
-                # 状态
-                status = "在线" if device['online'] else "离线"
-                status_item = QTableWidgetItem(status)
-                if device['online']:
-                    status_item.setForeground(Qt.GlobalColor.darkGreen)
-                else:
-                    status_item.setForeground(Qt.GlobalColor.red)
-                self.device_table.setItem(row, 3, status_item)
-                
-                # 实时数据 - 暂时显示为空，避免查询卡顿
-                # 启动监控后会自动更新
-                self.device_table.setItem(row, 4, QTableWidgetItem("-"))
-                
-                # 最后更新时间
-                last_seen = device['last_seen'] or '-'
-                if last_seen != '-':
-                    try:
-                        dt = datetime.fromisoformat(last_seen.replace('Z', '+00:00'))
-                        last_seen = dt.strftime('%Y-%m-%d %H:%M:%S')
-                    except:
-                        pass
-                self.device_table.setItem(row, 5, QTableWidgetItem(last_seen))
-                
-                # 监控间隔
-                interval = device.get('monitor_interval', 60)
-                self.device_table.setItem(row, 6, QTableWidgetItem(f"{interval}秒"))
-                
-                # 操作按钮
-                btn = QPushButton("查看详情")
-                btn.clicked.connect(lambda checked, d=device: self.show_device_detail(d))
-                self.device_table.setCellWidget(row, 7, btn)
+                # 尝试加载实时数据
+                if card:
+                    overview_data = self._get_device_overview_data(device['did'])
+                    card.update_realtime_data(overview_data)
             
             # 更新统计
             self.update_stats_label()
         finally:
             self._is_refreshing = False
+    
+    def _get_device_overview_data(self, did: str) -> list:
+        """获取设备概览数据"""
+        try:
+            device = self.database.get_device(did)
+            if not device:
+                return []
+            
+            properties = self.database.get_latest_device_properties(did)
+            if not properties:
+                return []
+            
+            profile = DeviceProfileFactory.create_profile(device.get('model', ''))
+            return profile.get_overview_properties(properties)
+        except Exception as e:
+            logger.error(f"获取设备概览数据失败: {e}")
+            return []
     
     def refresh_alert_list(self) -> None:
         """刷新报警列表"""
@@ -576,19 +568,16 @@ class MainWindow(QMainWindow):
                     'timestamp': datetime.now().isoformat()
                 }
         
-        # 更新特定设备的实时数据显示
+        # 更新特定设备的卡片实时数据
         if not did:
             return
         
         try:
-            # 使用缓存的映射直接找到行号，避免数据库查询
-            row = self._did_to_row.get(did)
-            if row is not None and row < self.device_table.rowCount():
-                # 更新实时数据列 - 使用缓存
-                status_info = self._format_device_status(did)
-                self.device_table.setItem(row, 4, QTableWidgetItem(status_info))
+            # 获取设备概览数据并更新卡片
+            overview_data = self._get_device_overview_data(did)
+            self.device_card_grid.update_device_data(did, overview_data)
         except Exception as e:
-            logger.error(f"更新设备显示失败: {e}")
+            logger.error(f"更新设备卡片失败: {e}")
     
     def _handle_device_offline(self, data: Dict[str, Any]) -> None:
         """处理设备离线信号"""
