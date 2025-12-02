@@ -84,6 +84,15 @@ class DeviceProfile:
                 return f"{int(float(value))}K"
             elif key == 'on':
                 return "开启" if str(value).lower() in ['true', '1', 'on'] else "关闭"
+            elif key == 'mute':
+                return "静音" if str(value).lower() in ['true', '1', 'on'] else "未静音"
+            elif key == 'volume':
+                return f"🔊{int(float(value))}"
+            elif key == 'playing-state':
+                state_map = {0: "⏸暂停", 1: "▶播放中", 2: "⏳缓冲中"}
+                return state_map.get(int(value), str(value))
+            elif key == 'connected-device-count':
+                return f"{int(value)}台设备"
             else:
                 return str(value)
         except (ValueError, TypeError):

@@ -64,10 +64,8 @@
   ],
   "ui_config": {
     "dashboard": {
-      "overview_properties": ["playing-state", "volume"],
-      "chart_properties": {
-        "volume": {"color": "#FF9800", "label": "音量"}
-      }
+      "overview_properties": [],
+      "chart_properties": {}
     },
     "details": {
       "display_order": ["playing-state", "volume", "mute", "mic-mute"],

@@ -35,7 +35,7 @@
   ],
   "ui_config": {
     "dashboard": {
-      "overview_properties": ["connected-device-count"],
+      "overview_properties": [],
       "chart_properties": {
         "connected-device-count": {"color": "#2196F3", "label": "连接设备数"}
       }

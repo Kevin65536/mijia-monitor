@@ -94,8 +94,15 @@
 
 目前已支持以下设备：
 
-* **miaomiaoce.sensor_ht.t2** (秒秒测温湿度计)
-* **qmi.plug.psv3** (小米智能插线板2)
+| 型号 | 设备名称 | 首页显示 | 备注 |
+|------|----------|----------|------|
+| **miaomiaoce.sensor_ht.t2** | 秒秒测温湿度计 | 温度、湿度、电量 | |
+| **qmi.plug.psv3** | 小米智能插线板2 | 开关、功率 | |
+| **cuco.plug.v3** | 米家智能插座3 | 开关、功率 | |
+| **dmaker.fan.p44** | 米家智能蒸发式冷风扇 | 开关、档位 | |
+| **xiaomi.tv.esh1** | 小米电视ES系列 | - | API数据不适合首页展示 |
+| **xiaomi.wifispeaker.l05b** | 小爱音箱Play增强版 | - | API数据不适合首页展示 |
+| **xiaomi.router.ra71** | Redmi路由器 | - | API数据不适合首页展示 |
 
 ## 常见属性键名参考
 

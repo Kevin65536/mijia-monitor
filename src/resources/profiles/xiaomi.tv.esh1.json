@@ -60,10 +60,8 @@
   ],
   "ui_config": {
     "dashboard": {
-      "overview_properties": ["volume", "mute"],
-      "chart_properties": {
-        "volume": {"color": "#4CAF50", "label": "音量"}
-      }
+      "overview_properties": [],
+      "chart_properties": {}
     },
     "details": {
       "display_order": ["volume", "mute", "input-control", "sleep-mode"],
