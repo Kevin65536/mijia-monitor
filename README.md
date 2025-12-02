@@ -31,7 +31,7 @@
 
 1. 从 [Releases](https://github.com/Kevin65536/mijia-monitor/releases) 下载最新的 `MiMonitor.zip`
 2. 将压缩包完整解压到任意目录,确保 `MiMonitor.exe` 与 `config/`、`data/`、`logs/` 同级
-3. 双击 `MiMonitor.exe` 或运行 `启动监控.bat`
+3. 双击 `MiMonitor.exe` 启动程序
 4. 首次运行会在 `config/config.yaml` 中保存本地配置,并需要通过二维码登录米家账号
 
 ### 方式二: 从源码运行 (开发者)
@@ -72,11 +72,10 @@ GitHub Release 中提供的 `MiMonitor.zip` 解压后包含以下内容:
 
 | 路径 | 说明 |
 | --- | --- |
-| `MiMonitor.exe` | 主程序,需与其它目录同级放置 |
+| `MiMonitor.exe` | 主程序，双击直接运行 |
 | `config/` | 默认配置与认证文件存放位置 (`config.yaml`, `mijia_auth.json`) |
-| `data/` | SQLite 数据库存储目录,初始为空 |
-| `logs/` | 日志输出目录,用于排查问题 |
-| `启动监控.bat` | 辅助脚本,在当前目录启动应用 |
+| `data/` | SQLite 数据库存储目录，初始为空 |
+| `logs/` | 日志输出目录，用于排查问题 |
 
 发布压缩包已包含运行所需的全部文件,用户无需在 `AppData` 等位置写入数据,也不需要额外创建目录。更新程序时,只需备份当前目录(尤其是 `config/` 与 `data/`),替换 `MiMonitor.exe` 即可。
 

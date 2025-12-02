@@ -39,7 +39,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [4/6] 复制必要文件...
+echo [4/5] 复制必要文件...
 if not exist dist\config mkdir dist\config
 copy config\config.yaml dist\config\ >nul 2>&1
 
@@ -47,15 +47,7 @@ if not exist dist\data mkdir dist\data
 if not exist dist\logs mkdir dist\logs
 
 echo.
-echo [5/6] 创建启动脚本...
-(
-    echo @echo off
-    echo cd /d "%%~dp0"
-    echo start "" "MiMonitor.exe"
-) > dist\启动监控.bat
-
-echo.
-echo [6/6] 生成发布压缩包...
+echo [5/5] 生成发布压缩包...
 if not exist release mkdir release
 set RELEASE_ZIP=release\MiMonitor.zip
 if exist %RELEASE_ZIP% del %RELEASE_ZIP%
