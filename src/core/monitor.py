@@ -8,14 +8,16 @@ from threading import Thread, Event, Lock
 from queue import Queue, Empty
 import sys
 
-# 添加mijia-api到路径
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "mijia-api"))
+# 开发环境下添加mijia-api到路径
+if not getattr(sys, 'frozen', False):
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "mijia-api"))
 
 from mijiaAPI import mijiaAPI, mijiaDevice, mijiaLogin
 
 from .database import DatabaseManager
 from ..utils.logger import get_logger
 from ..utils.config_loader import ConfigLoader
+from ..utils.path_utils import get_app_path
 
 logger = get_logger(__name__)
 
@@ -59,7 +61,8 @@ class DeviceMonitor:
         """初始化米家API"""
         try:
             auth_file = self.config.get('mijia.auth_file', 'config/mijia_auth.json')
-            auth_path = Path(auth_file)
+            # 使用绝对路径，确保从任何工作目录启动都能找到认证文件
+            auth_path = get_app_path() / auth_file
             
             if not auth_path.exists():
                 logger.warning(f"认证文件不存在: {auth_path}")
@@ -108,7 +111,8 @@ class DeviceMonitor:
             if auth_data:
                 # 保存认证信息
                 auth_file = self.config.get('mijia.auth_file', 'config/mijia_auth.json')
-                auth_path = Path(auth_file)
+                # 使用绝对路径，确保认证文件保存到正确位置
+                auth_path = get_app_path() / auth_file
                 auth_path.parent.mkdir(parents=True, exist_ok=True)
                 
                 with open(auth_path, 'w', encoding='utf-8') as f:
