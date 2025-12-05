@@ -1,166 +1,93 @@
-# 米家设备监控系统配置文件
-
-# 应用程序配置
-app:
-  name: "米家设备监控"
-  version: "1.1.0"
-  language: "zh_CN"
-  theme: "light"  # light, dark, auto
-
-# 米家API配置
-mijia:
-  # 认证文件路径(从mijiaAPI登录后保存)
-  auth_file: "config/mijia_auth.json"
-  # API请求超时时间(秒)
-  timeout: 10
-  # API请求重试次数
-  retry: 3
-
-# 监控配置
-monitor:
-  # 全局监控间隔(秒) - 所有设备的默认监控间隔
-  default_interval: 60
-  # 是否启用自动监控
-  auto_start: true
-  # 监控线程数量
-  worker_threads: 5
-  
-  # 针对不同设备类型的监控间隔(秒)
-  device_intervals:
-    # 传感器类设备(温湿度传感器、门窗传感器等)
-    sensor: 300
-    # 灯具类设备
-    light: 60
-    # 空调类设备
-    airconditioner: 180
-    # 插座类设备
-    plug: 120
-    # 扫地机器人
-    vacuum: 300
-    # 其他设备
-    default: 60
-
-# 数据库配置
-database:
-  # SQLite数据库文件路径
-  path: "data/monitor.db"
-  # 数据保留天数(0表示永久保留)
-  retention_days: 30
-  # 是否自动清理过期数据
-  auto_cleanup: true
-  # 数据库备份
-  backup:
-    enabled: true
-    path: "data/backups"
-    interval_days: 7
-    max_backups: 4
-
-# 日志配置
-logging:
-  # 日志级别: DEBUG, INFO, WARNING, ERROR, CRITICAL
-  level: "INFO"
-  # 日志文件路径
-  file: "logs/mi-monitor.log"
-  # 日志文件最大大小(MB)
-  max_size: 10
-  # 保留的日志文件数量
-  backup_count: 5
-  # 是否输出到控制台
-  console: true
-  # 日志格式
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-
-# 通知配置
-notification:
-  # 是否启用通知
-  enabled: true
-  # 通知类型
-  types:
-    # 设备离线通知
-    device_offline: true
-    # 设备上线通知
-    device_online: true
-    # 属性异常通知
-    property_alert: true
-  # 通知方式
-  methods:
-    # Windows系统托盘通知
-    system_tray: true
-    # 音效通知
-    sound: false
-
-# 报警配置
 alerts:
   enabled: false
-  # 报警规则(示例)
   rules:
-    - name: "温度过高"
-      device_type: "sensor"
-      property: "temperature"
-      condition: ">"
-      threshold: 35
-      enabled: true
-    - name: "温度过低"
-      device_type: "sensor"
-      property: "temperature"
-      condition: "<"
-      threshold: 10
-      enabled: true
-    - name: "湿度过高"
-      device_type: "sensor"
-      property: "relative-humidity"
-      condition: ">"
-      threshold: 80
-      enabled: true
-
-# UI配置
-ui:
-  # 主窗口
-  main_window:
-    width: 1200
-    height: 800
-    # 启动时最小化到托盘
-    start_minimized: false
-  # 设备列表
-  device_list:
-    # 每页显示数量
-    page_size: 50
-    # 排序方式: name, type, status, last_update
-    sort_by: "name"
-  # 图表
-  charts:
-    # 图表主题: light, dark
-    theme: "light"
-    # 默认显示的数据点数量
-    max_points: 100
-    # 刷新间隔(秒)
-    refresh_interval: 5
-  # 系统托盘
-  system_tray:
-    # 是否启用系统托盘
+  - condition: '>'
+    device_type: sensor
     enabled: true
-    # 关闭窗口时最小化到托盘
-    close_to_tray: true
-
-# 导出配置
-export:
-  # 默认导出格式: csv, excel, json
-  default_format: "csv"
-  # 默认导出路径
-  default_path: "exports"
-
-# 性能配置
-performance:
-  # 数据库查询批量大小
-  batch_size: 1000
-  # 缓存大小(MB)
-  cache_size: 100
-  # UI更新频率(毫秒)
-  ui_update_interval: 1000
-
-# 开发者选项
+    name: 温度过高
+    property: temperature
+    threshold: 35
+  - condition: <
+    device_type: sensor
+    enabled: true
+    name: 温度过低
+    property: temperature
+    threshold: 10
+  - condition: '>'
+    device_type: sensor
+    enabled: true
+    name: 湿度过高
+    property: relative-humidity
+    threshold: 80
+app:
+  language: zh_CN
+  name: 米家设备监控
+  theme: light
+  version: 1.1.0
+database:
+  auto_cleanup: true
+  backup:
+    enabled: true
+    interval_days: 7
+    max_backups: 4
+    path: data/backups
+  path: data/monitor.db
+  retention_days: 30
 developer:
-  # 是否启用调试模式
   debug: false
-  # 是否显示性能统计
   show_performance: false
+export:
+  default_format: csv
+  default_path: exports
+logging:
+  backup_count: 5
+  console: true
+  file: logs/mi-monitor.log
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  level: INFO
+  max_size: 10
+mijia:
+  auth_file: config/mijia_auth.json
+  retry: 3
+  timeout: 10
+monitor:
+  auto_start: true
+  default_interval: 60
+  device_intervals:
+    airconditioner: 180
+    default: 60
+    light: 60
+    plug: 120
+    sensor: 300
+    vacuum: 300
+  worker_threads: 5
+notification:
+  enabled: true
+  methods:
+    sound: false
+    system_tray: true
+  types:
+    device_offline: true
+    device_online: true
+    property_alert: true
+performance:
+  batch_size: 1000
+  cache_size: 100
+  ui_update_interval: 1000
+ui:
+  autostart:
+    enabled: false
+  charts:
+    max_points: 100
+    refresh_interval: 5
+    theme: light
+  device_list:
+    page_size: 50
+    sort_by: name
+  main_window:
+    height: 800
+    start_minimized: false
+    width: 1200
+  system_tray:
+    close_to_tray: true
+    enabled: true

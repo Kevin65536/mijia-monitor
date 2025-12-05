@@ -19,6 +19,7 @@ from ..core.device_profiles import DeviceProfileFactory
 from ..utils.config_loader import ConfigLoader
 from ..utils.logger import get_logger
 from ..utils.path_utils import get_resource_path
+from ..utils.autostart import is_autostart_enabled, set_autostart
 from .device_detail_dialog import DeviceDetailDialog
 from .qr_login_dialog import QRLoginDialog
 from .cards import DeviceCardGrid
@@ -249,6 +250,17 @@ class MainWindow(QMainWindow):
         show_action = QAction("显示主窗口", self)
         show_action.triggered.connect(self.show)
         tray_menu.addAction(show_action)
+        
+        tray_menu.addSeparator()
+        
+        # 开机自启动选项
+        self.autostart_action = QAction("开机自启动", self)
+        self.autostart_action.setCheckable(True)
+        self.autostart_action.setChecked(is_autostart_enabled())
+        self.autostart_action.triggered.connect(self.toggle_autostart)
+        tray_menu.addAction(self.autostart_action)
+        
+        tray_menu.addSeparator()
         
         quit_action = QAction("退出", self)
         quit_action.triggered.connect(self.quit_application)
@@ -604,6 +616,40 @@ class MainWindow(QMainWindow):
             else:
                 self.show()
                 self.activateWindow()
+    
+    def toggle_autostart(self, checked: bool) -> None:
+        """切换开机自启动状态"""
+        success = set_autostart(checked)
+        
+        if success:
+            # 更新配置文件
+            self.config.set('ui.autostart.enabled', checked)
+            self.config.save()
+            
+            status_msg = "已启用开机自启动" if checked else "已禁用开机自启动"
+            self.status_bar.showMessage(status_msg, 3000)
+            logger.info(status_msg)
+            
+            if self.tray_icon:
+                self.tray_icon.showMessage(
+                    "米家设备监控",
+                    status_msg,
+                    QSystemTrayIcon.MessageIcon.Information,
+                    2000
+                )
+        else:
+            # 操作失败，恢复复选框状态
+            self.autostart_action.setChecked(not checked)
+            
+            error_msg = "设置开机自启动失败"
+            self.status_bar.showMessage(error_msg, 3000)
+            logger.error(error_msg)
+            
+            QMessageBox.warning(
+                self,
+                "设置失败",
+                "无法设置开机自启动，请检查系统权限。"
+            )
     
     def closeEvent(self, event) -> None:
         """关闭事件"""

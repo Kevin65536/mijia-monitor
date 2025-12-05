@@ -140,6 +140,9 @@ class ConfigLoader:
                 'system_tray': {
                     'enabled': True,
                     'close_to_tray': True
+                },
+                'autostart': {
+                    'enabled': False
                 }
             }
         }
